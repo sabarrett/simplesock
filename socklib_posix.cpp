@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <stdexcept>
+#include <string.h>
 
 class Address::AddressData
 {
