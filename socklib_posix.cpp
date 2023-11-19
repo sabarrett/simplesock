@@ -6,6 +6,7 @@
 #include <netinet/ip.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <stdexcept>
 
 class Address::AddressData
 {
