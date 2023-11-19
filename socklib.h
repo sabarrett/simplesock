@@ -43,7 +43,7 @@ class Socket
 
   int Bind(const Address& address, int port);
   int Listen(int backlog=16);
-  std::shared_ptr<Socket> Accept();
+  std::unique_ptr<Socket> Accept();
   int Connect(const Address& address, int port);
   ByteString Recv(unsigned int max_len);
   size_t RecvInto(ByteString& buffer);

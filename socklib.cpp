@@ -126,7 +126,7 @@ int Socket::Listen(int backlog)
   return 0;
 }
 
-std::shared_ptr<Socket> Socket::Accept()
+std::unique_ptr<Socket> Socket::Accept()
 {
   sockaddr conn_addr;
   socklen_t conn_addr_len;
@@ -136,7 +136,7 @@ std::shared_ptr<Socket> Socket::Accept()
       throw std::runtime_error(std::string("accept(): ") + strerror(errno));
     }
 
-  std::shared_ptr<Socket> conn_sock = std::make_shared<Socket>(Socket::Family::INET, Socket::Type::STREAM);
+  std::unique_ptr<Socket> conn_sock(new Socket(Socket::Family::INET, Socket::Type::STREAM));
   conn_sock->_data->s = connection;
 
   return conn_sock;
@@ -196,4 +196,3 @@ ssize_t Socket::SendAll(const ByteString& data)
 
   return send_count;
 }
-
