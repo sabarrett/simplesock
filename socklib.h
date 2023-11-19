@@ -4,15 +4,6 @@
 
 typedef std::string ByteString;
 
-/*
-class ByteString : public std::vector<char>
-{
- public:
-  explicit ByteString(size_type n, const value_type& val, const allocator_type& alloc = allocator_type()): std::vector<char>(n, val, alloc) {}
-  std::string as_ascii();
-};
-*/
-
 class Address
 {
  public:
@@ -47,10 +38,12 @@ class Socket
   int Connect(const Address& address, int port);
   ByteString Recv(unsigned int max_len);
   size_t RecvInto(ByteString& buffer);
-  ssize_t SendAll(const ByteString& data);
+  size_t SendAll(const ByteString& data);
 
  private:
   class SocketData;
   SocketData* _data;
 };
 
+void SockLibInit();
+void SockLibShutdown();

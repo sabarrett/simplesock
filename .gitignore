@@ -1,3 +1,6 @@
 *~
 /main
 *.dSYM
+/.vs/
+/build/
+/out/

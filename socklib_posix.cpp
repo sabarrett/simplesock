@@ -7,12 +7,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-std::string to_string(const ByteString& s)
-{
-  std::string str(s.begin(), s.end());
-  return str;
-}
-
 class Address::AddressData
 {
 public:
@@ -181,9 +175,9 @@ size_t Socket::RecvInto(ByteString& buffer)
   return len;
 }
 
-ssize_t Socket::SendAll(const ByteString& data)
+size_t Socket::SendAll(const ByteString& data)
 {
-  ssize_t send_count = 0;
+  size_t send_count = 0;
   while (send_count < data.size())
     {
       ssize_t count = send(_data->s, data.data() + send_count, data.size() - send_count, 0);
