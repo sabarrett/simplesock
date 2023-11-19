@@ -9,6 +9,9 @@
 #include <stdexcept>
 #include <string.h>
 
+void SockLibInit() {}
+void SockLibShutdown() {}
+
 class Address::AddressData
 {
 public:
