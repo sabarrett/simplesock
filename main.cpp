@@ -22,7 +22,7 @@ private:
 int main(int argc, char* argv[])
 {
     SockLibInit();
-    defer ___([]() { SockLibShutdown(); });
+    defer _shutdown_socklib([]() { SockLibShutdown(); });
 
     Socket sock(Socket::Family::INET, Socket::Type::STREAM);
 

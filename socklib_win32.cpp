@@ -10,6 +10,10 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
+#define fatal(ctx) {std::cerr << __FILE__ << " L" << __LINE__ << ": " << ctx << ": " << std::system_category().message(WSAGetLastError()); abort();}
+
+#define require(condition, ctx) if (!(condition)) {fatal(ctx)};
+
 static bool winsock_initialized = false;
 
 void SockLibInit()
@@ -42,10 +46,7 @@ public:
 Address::Address(const std::string& name)
 {
 	_data = new AddressData();
-	if (inet_pton(AF_INET, name.c_str(), &_data->address) == -1)
-	{
-		throw std::runtime_error(std::string("inet_pton(): ") + std::to_string(WSAGetLastError()));
-	}
+	require(inet_pton(AF_INET, name.c_str(), &_data->address) == 1, "inet_pton");
 }
 
 Address::~Address()
@@ -87,10 +88,7 @@ Socket::Socket(Family family, Type type)
 	}
 
 	_data->s = socket(native_family, native_type, native_protocol);
-	if (_data->s == INVALID_SOCKET)
-	{
-		throw std::runtime_error("Invalid socket");
-	}
+	require(_data->s != INVALID_SOCKET, "socket()");
 }
 
 Socket::~Socket()
@@ -106,20 +104,14 @@ int Socket::Bind(const Address& address, int port)
 	service.sin_port = htons(port);
 	service.sin_addr = address._data->address;
 
-	if (bind(_data->s, (sockaddr*)&service, sizeof(service)) == SOCKET_ERROR)
-	{
-		throw std::runtime_error("bind()");
-	}
+	require(bind(_data->s, (sockaddr*)&service, sizeof(service)) != SOCKET_ERROR, "bind()");
 
 	return 0;
 }
 
 int Socket::Listen(int backlog)
 {
-	if (listen(_data->s, backlog) == SOCKET_ERROR)
-	{
-		throw std::runtime_error("listen()");
-	}
+	require(listen(_data->s, backlog) != SOCKET_ERROR, "listen()");
 
 	return 0;
 }
@@ -127,10 +119,7 @@ int Socket::Listen(int backlog)
 std::unique_ptr<Socket> Socket::Accept()
 {
 	SOCKET connection = accept(_data->s, NULL, NULL);
-	if (connection == INVALID_SOCKET)
-	{
-		throw std::runtime_error("accept()");
-	}
+	require(connection != INVALID_SOCKET, "accept()");
 
 	std::unique_ptr<Socket> s(new Socket(INET, STREAM));
 	s->_data->s = connection;
@@ -145,10 +134,7 @@ int Socket::Connect(const Address& address, int port)
 	service.sin_port = htons(port);
 	service.sin_addr = address._data->address;
 
-	if (connect(_data->s, (sockaddr*)&service, sizeof(service)) == SOCKET_ERROR)
-	{
-		throw std::runtime_error(std::string("connect(): ") + strerror(errno));
-	}
+	require(connect(_data->s, (sockaddr*)&service, sizeof(service)) != SOCKET_ERROR, "connect()");
 
 	return 0;
 }
@@ -168,10 +154,7 @@ ByteString Socket::Recv(unsigned int max_len)
 size_t Socket::RecvInto(ByteString& buffer)
 {
 	int len = recv(_data->s, buffer.data(), buffer.size(), 0);
-	if (len < 0)
-	{
-		throw std::runtime_error("recv()");
-	}
+	require(len >= 0, "recv()");
 
 	return len;
 }
@@ -182,10 +165,7 @@ size_t Socket::SendAll(const ByteString& data)
 	while (send_count < data.size())
 	{
 		int count = send(_data->s, data.data() + send_count, data.size() - send_count, 0);
-		if (count == -1)
-		{
-			throw std::runtime_error(std::string("send()"));
-		}
+		require(count != -1, "send()");
 		send_count += count;
 	}
 
