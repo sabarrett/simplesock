@@ -1,2 +1,2 @@
 all:
-	clang++ --std=c++17 main.cpp socklib.cpp -o main
+	clang++ --std=c++17 -g main.cpp socklib_posix.cpp -o main
