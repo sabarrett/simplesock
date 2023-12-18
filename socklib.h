@@ -39,7 +39,7 @@ class Socket
   int Connect(const Address& address, int port);
   ByteString Recv(unsigned int max_len);
   size_t RecvInto(ByteString& buffer);
-  size_t SendAll(const char* data);
+  size_t SendAll(const char* data, size_t len=0);
   size_t SendAll(const ByteString& data);
 
  private:
@@ -50,16 +50,26 @@ class Socket
 void SockLibInit();
 void SockLibShutdown();
 
-ByteString to_bytestring(const char* msg);
+ByteString to_bytestring(const char* msg, size_t len);
 std::ostream& operator<<(std::ostream& s, const ByteString& b);
 
 class InDataStream
 {
  public:
  InDataStream(ByteString string):
-  string(std::move(string)),
+  string(string),
     head(0)
     {}
+
+ InDataStream(size_t max_size):
+  string(max_size),
+    head(0)
+    {}
+
+  ByteString& buffer()
+    {
+      return string;
+    }
 
   int ReadUInt32()
   {
@@ -68,11 +78,13 @@ class InDataStream
     x = *(uint32_t*)&string[head];
     x = ntohl(x);
 
+    head += sizeof(uint32_t);
+
     return x;
   }
   
  private:
-  const ByteString string;
+  ByteString string;
   int head;
 };
 
@@ -85,8 +97,8 @@ class OutDataStream
     {}
   
  OutDataStream(size_t max_size):
-  string(max_size)
-    {}
+  string()
+    {string.reserve(max_size);}
 
   ByteString& GetByteString() {return string;}
 

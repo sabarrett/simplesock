@@ -1,4 +1,5 @@
 #include "socklib.h"
+#include <cstring>
 #include <memory>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -6,6 +7,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
+
+void SockLibInit() {}
+void SockLibShutdown() {}
 
 std::string to_string(const ByteString &s) {
   std::string str(s.begin(), s.end());
@@ -170,24 +174,26 @@ ByteString Socket::Recv(unsigned int max_len) {
 }
 
 size_t Socket::RecvInto(ByteString &buffer) {
-  ssize_t len = recv(_data->s, buffer.data(), buffer.size(), 0);
+  ssize_t len = recv(_data->s, buffer.data(), buffer.capacity(), 0);
   if (len < 0) {
     throw std::runtime_error(std::string("recv(): ") + strerror(errno));
   }
+  buffer.resize(len);
 
   return len;
 }
 
-size_t Socket::SendAll(const char *data) {
-  ByteString b = to_bytestring(data);
+size_t Socket::SendAll(const char *data, size_t len) {
+  if (len == 0) len = strlen(data);
+  ByteString b = to_bytestring(data, len);
   return SendAll(b);
 }
 
 size_t Socket::SendAll(const ByteString &data) {
-  size_t send_count = 0;
+  ssize_t send_count = 0;
   while (send_count < data.size()) {
     ssize_t count =
-        send(_data->s, data.data() + send_count, data.size() - send_count, 0);
+        send(_data->s, data.data() + send_count, data.capacity() - send_count, 0);
     if (count == -1) {
       throw std::runtime_error(std::string("send(): ") + strerror(errno));
     }
@@ -197,8 +203,9 @@ size_t Socket::SendAll(const ByteString &data) {
   return send_count;
 }
 
-ByteString to_bytestring(const char *msg) {
+ByteString to_bytestring(const char *msg, size_t len) {
   ByteString str;
+  str.reserve(len);
   for (const char *p = msg; *p != '\0'; p++) {
     str.push_back(*p);
   }
@@ -209,7 +216,3 @@ std::ostream &operator<<(std::ostream &s, const ByteString &b) {
   s.write(b.data(), b.size());
   return s;
 }
-
-void SockLibInit() { }
-
-void SockLibShutdown() { }

@@ -45,7 +45,7 @@ void do_client(Socket& sock)
 
   printf("Connected!\n");
 
-  OutDataStream stream;
+  OutDataStream stream(4);
   stream.PutUInt32(88223399);
 
   //ssize_t len = sock.SendAll("Hi, server!");
@@ -57,6 +57,8 @@ void do_client(Socket& sock)
 
   std::cout << "Client received message '" << server_msg << "' of length " << server_msg.size() << ".\n";
 }
+
+#define STR_ARGS(x) x, sizeof(x)
 
 void do_server(Socket& sock)
 {
@@ -74,17 +76,23 @@ void do_server(Socket& sock)
 
   printf("Accepted connection!\n");
 
-  ByteString msg = connection->Recv(1024);
+  // ByteString msg = connection->Recv(1024);
+
+  InDataStream stream(1024);
+
+  connection->RecvInto(stream.buffer());
+
+  ByteString& msg = stream.buffer();
 
   std::cout << "Received message of length " << msg.size() << ": '" << msg << std::endl;
 
   // printf("Received message of length %d: '%*s'\n", (int)msg.size(), (int)msg.size(), msg.data());
 
-  InDataStream stream(msg);
+  // InDataStream stream(std::move(msg));
   int x = stream.ReadUInt32();
 
   std::cout << "x = " << x << std::endl;
 
-  connection->SendAll("Hi there, client!");
+  connection->SendAll(STR_ARGS("Hi there, client!"));
 }
 
