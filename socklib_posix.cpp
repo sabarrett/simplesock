@@ -16,13 +16,21 @@ std::string to_string(const ByteString &s) {
   return str;
 }
 
-class Address::AddressData {
-public:
+union PosixAddress
+{
+  Address::AddressData generic_data;
   u_int32_t address;
 };
 
+static u_int32_t to_native_address(Address generic_address)
+{
+  PosixAddress posix_address;
+  posix_address.generic_data = generic_address.data;
+  return posix_address.address;
+}
+
 Address::Address(const std::string &name) {
-  _data = new AddressData();
+  PosixAddress posix_address;
 
   u_int32_t address = 0;
   std::stringstream stream(name);
@@ -36,10 +44,9 @@ Address::Address(const std::string &name) {
     address += byte << (offset - (i * 8));
   }
 
-  _data->address = htonl(address);
+  posix_address.address = htonl(address);
+  data = posix_address.generic_data;
 }
-
-Address::~Address() { delete _data; }
 
 class Socket::SocketData {
 public:
@@ -94,7 +101,7 @@ int Socket::Bind(const Address &address, int port) {
 
   native_address.sin_family = AF_INET;
   native_address.sin_port = htons(port);
-  native_address.sin_addr.s_addr = address._data->address;
+  native_address.sin_addr.s_addr = to_native_address(address);
 
   if (bind(_data->s, (sockaddr *)&native_address, sizeof(native_address)) ==
       -1) {
@@ -132,7 +139,7 @@ int Socket::Connect(const Address &address, int port) {
 
   native_address.sin_family = AF_INET;
   native_address.sin_port = htons(port);
-  native_address.sin_addr.s_addr = address._data->address;
+  native_address.sin_addr.s_addr = to_native_address(address);
 
   if (connect(_data->s, (sockaddr *)&native_address, sizeof(native_address)) ==
       -1) {

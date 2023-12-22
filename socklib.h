@@ -9,10 +9,11 @@ class Address
 {
  public:
   Address(const std::string& name);
-  ~Address();
 
-  class AddressData;
-  AddressData* _data;
+  struct AddressData
+  {
+    char data[32];
+  } data;
 };
 
 class Socket

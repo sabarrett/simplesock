@@ -9,6 +9,7 @@
 
 void do_client(Socket& sock);
 void do_server(Socket& sock);
+void print_allocations(bool to_print);
 
 struct Pool
 {
@@ -99,6 +100,8 @@ int main(int argc, char* argv[])
     pool_sizes.push_back(4096);
 
     init_pools(pool_sizes);
+
+    print_allocations(true);
 
     if (argc > 1)
     {
