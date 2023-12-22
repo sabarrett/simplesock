@@ -43,9 +43,10 @@ class Socket
   size_t SendAll(const char* data, size_t len=0);
   size_t SendAll(const ByteString& data);
 
- private:
-  class SocketData;
-  SocketData* _data;
+  struct SocketData
+  {
+    char data[32];
+  } data;
 };
 
 void SockLibInit();

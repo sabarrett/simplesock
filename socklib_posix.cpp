@@ -48,15 +48,21 @@ Address::Address(const std::string &name) {
   data = posix_address.generic_data;
 }
 
-class Socket::SocketData {
-public:
-  int s;
+union PosixSocket {
+  Socket::SocketData generic_data;
+  int posix_socket;
 };
+
+static int to_native_socket(const Socket& generic_socket)
+{
+  PosixSocket posix_socket;
+  posix_socket.generic_data = generic_socket.data;
+  return posix_socket.posix_socket;
+}
 
 // Socket Class
 
 Socket::Socket(Socket::Family family, Socket::Type type) {
-  _data = new SocketData();
   int native_family;
   int native_type;
   int native_protocol;
@@ -84,16 +90,18 @@ Socket::Socket(Socket::Family family, Socket::Type type) {
     exit(1);
   }
 
-  _data->s = socket(native_family, native_type, native_protocol);
-  if (_data->s == -1) {
+  PosixSocket sock;
+
+  sock.posix_socket = socket(native_family, native_type, native_protocol);
+  if (sock.posix_socket == -1) {
     perror("Opening socket");
     exit(1);
   }
+  data = sock.generic_data;
 }
 
 Socket::~Socket() {
-  close(_data->s);
-  delete _data;
+  close(to_native_socket(*this));
 }
 
 int Socket::Bind(const Address &address, int port) {
@@ -103,7 +111,7 @@ int Socket::Bind(const Address &address, int port) {
   native_address.sin_port = htons(port);
   native_address.sin_addr.s_addr = to_native_address(address);
 
-  if (bind(_data->s, (sockaddr *)&native_address, sizeof(native_address)) ==
+  if (bind(to_native_socket(*this), (sockaddr *)&native_address, sizeof(native_address)) ==
       -1) {
     throw std::runtime_error(std::string("bind(): ") + strerror(errno));
   }
@@ -112,7 +120,7 @@ int Socket::Bind(const Address &address, int port) {
 }
 
 int Socket::Listen(int backlog) {
-  if (listen(_data->s, backlog) == -1) {
+  if (listen(to_native_socket(*this), backlog) == -1) {
     throw std::runtime_error(std::string("listen(): ") + strerror(errno));
   }
 
@@ -122,14 +130,16 @@ int Socket::Listen(int backlog) {
 std::unique_ptr<Socket> Socket::Accept() {
   sockaddr conn_addr;
   socklen_t conn_addr_len;
-  int connection = accept(_data->s, &conn_addr, &conn_addr_len);
+  int connection = accept(to_native_socket(*this), &conn_addr, &conn_addr_len);
   if (connection == -1) {
     throw std::runtime_error(std::string("accept(): ") + strerror(errno));
   }
 
   std::unique_ptr<Socket> conn_sock =
       std::make_unique<Socket>(Socket::Family::INET, Socket::Type::STREAM);
-  conn_sock->_data->s = connection;
+  PosixSocket sock;
+  sock.posix_socket = connection;
+  conn_sock->data = sock.generic_data;
 
   return conn_sock;
 }
@@ -141,7 +151,7 @@ int Socket::Connect(const Address &address, int port) {
   native_address.sin_port = htons(port);
   native_address.sin_addr.s_addr = to_native_address(address);
 
-  if (connect(_data->s, (sockaddr *)&native_address, sizeof(native_address)) ==
+  if (connect(to_native_socket(*this), (sockaddr *)&native_address, sizeof(native_address)) ==
       -1) {
     throw std::runtime_error(std::string("connect(): ") + strerror(errno));
   }
@@ -182,7 +192,7 @@ ByteString Socket::Recv(unsigned int max_len) {
 
 size_t Socket::RecvInto(ByteString &buffer) {
   buffer.resize(buffer.capacity());
-  ssize_t len = recv(_data->s, buffer.data(), buffer.capacity(), 0);
+  ssize_t len = recv(to_native_socket(*this), buffer.data(), buffer.capacity(), 0);
   if (len < 0) {
     throw std::runtime_error(std::string("recv(): ") + strerror(errno));
   }
@@ -201,7 +211,7 @@ size_t Socket::SendAll(const ByteString &data) {
   ssize_t send_count = 0;
   while (send_count < data.size()) {
     ssize_t count =
-        send(_data->s, data.data() + send_count, data.size() - send_count, 0);
+      send(to_native_socket(*this), data.data() + send_count, data.size() - send_count, 0);
     if (count == -1) {
       throw std::runtime_error(std::string("send(): ") + strerror(errno));
     }

@@ -61,7 +61,7 @@ PoolView get_pool(size_t min_size)
     {
 	if (pool.lock == 0 && pool.pool.capacity() >= min_size)
 	{
-	    pool.pool.clear();
+	    pool.pool.resize(0);
 	    return PoolView(pool);
 	}
     }
