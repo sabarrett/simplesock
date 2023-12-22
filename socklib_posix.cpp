@@ -174,6 +174,7 @@ ByteString Socket::Recv(unsigned int max_len) {
 }
 
 size_t Socket::RecvInto(ByteString &buffer) {
+  buffer.resize(buffer.capacity());
   ssize_t len = recv(_data->s, buffer.data(), buffer.capacity(), 0);
   if (len < 0) {
     throw std::runtime_error(std::string("recv(): ") + strerror(errno));
@@ -193,7 +194,7 @@ size_t Socket::SendAll(const ByteString &data) {
   ssize_t send_count = 0;
   while (send_count < data.size()) {
     ssize_t count =
-        send(_data->s, data.data() + send_count, data.capacity() - send_count, 0);
+        send(_data->s, data.data() + send_count, data.size() - send_count, 0);
     if (count == -1) {
       throw std::runtime_error(std::string("send(): ") + strerror(errno));
     }

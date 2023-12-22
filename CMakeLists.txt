@@ -6,6 +6,8 @@ add_executable(SimpleSock main.cpp)
 
 target_compile_features(SimpleSock PRIVATE cxx_std_17)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 if (UNIX)
 	target_sources(SimpleSock PRIVATE socklib_posix.cpp)
 endif (UNIX)

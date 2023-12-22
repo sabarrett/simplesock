@@ -56,13 +56,8 @@ std::ostream& operator<<(std::ostream& s, const ByteString& b);
 class InDataStream
 {
  public:
- InDataStream(ByteString string):
+ InDataStream(ByteString& string):
   string(string),
-    head(0)
-    {}
-
- InDataStream(size_t max_size):
-  string(max_size),
     head(0)
     {}
 
@@ -84,7 +79,7 @@ class InDataStream
   }
   
  private:
-  ByteString string;
+  ByteString& string;
   int head;
 };
 
@@ -92,14 +87,9 @@ class OutDataStream
 {
  public:
 
- OutDataStream():
-  string()
-    {}
+ OutDataStream(ByteString& string):
+  string(string) {}
   
- OutDataStream(size_t max_size):
-  string()
-    {string.reserve(max_size);}
-
   ByteString& GetByteString() {return string;}
 
   void PutUInt32(uint32_t x)
@@ -120,5 +110,5 @@ class OutDataStream
     int32_t as_int;
   };
 
-  ByteString string;
+  ByteString& string;
 };
