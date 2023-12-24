@@ -14,7 +14,7 @@ class Address
   struct AddressData
   {
     char data[32];
-  } data;
+  } _data;
 };
 
 class Socket
@@ -32,22 +32,29 @@ class Socket
     DGRAM
   };
 
+  Socket();
   Socket(Family family, Type type);
   ~Socket();
 
+  Socket(const Socket& other) = delete;
+  Socket(Socket&& other);
+
+  void Create(Family family, Type type);
   int Bind(const Address& address, int port);
   int Listen(int backlog=16);
-  std::unique_ptr<Socket> Accept();
+  Socket Accept();
   int Connect(const Address& address, int port);
   PoolView Recv(unsigned int max_len);
   size_t RecvInto(ByteString& buffer);
   size_t SendAll(const char* data, size_t len=0);
   size_t SendAll(const ByteString& data);
 
+  bool _has_socket;
+
   struct SocketData
   {
     char data[32];
-  } data;
+  } _data;
 };
 
 void SockLibInit();

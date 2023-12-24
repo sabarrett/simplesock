@@ -4,9 +4,11 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <sstream>
+#include <stdexcept>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
+#include <string.h>
 
 void SockLibInit() {}
 void SockLibShutdown() {}
@@ -25,7 +27,7 @@ union PosixAddress
 static u_int32_t to_native_address(Address generic_address)
 {
   PosixAddress posix_address;
-  posix_address.generic_data = generic_address.data;
+  posix_address.generic_data = generic_address._data;
   return posix_address.address;
 }
 
@@ -45,7 +47,7 @@ Address::Address(const std::string &name) {
   }
 
   posix_address.address = htonl(address);
-  data = posix_address.generic_data;
+  _data = posix_address.generic_data;
 }
 
 union PosixSocket {
@@ -56,13 +58,38 @@ union PosixSocket {
 static int to_native_socket(const Socket& generic_socket)
 {
   PosixSocket posix_socket;
-  posix_socket.generic_data = generic_socket.data;
+  posix_socket.generic_data = generic_socket._data;
   return posix_socket.posix_socket;
 }
 
 // Socket Class
 
-Socket::Socket(Socket::Family family, Socket::Type type) {
+Socket::Socket() {
+  memset(_data.data, 0, sizeof(_data.data));
+  _has_socket = false;
+}
+
+Socket::Socket(Socket::Family family, Socket::Type type):Socket() {
+  Create(family, type);
+}
+
+Socket::Socket(Socket&& other) {
+  _has_socket = other._has_socket;
+  memcpy(_data.data, other._data.data, sizeof(_data.data));
+
+  other._has_socket = false;
+  memset(other._data.data, 0, sizeof(other._data.data));
+}
+
+Socket::~Socket() {
+  if (_has_socket) close(to_native_socket(*this));
+}
+
+void Socket::Create(Socket::Family family, Socket::Type type)
+{
+  if (_has_socket)
+    throw std::runtime_error("Socket already has an associated system socket.");
+  
   int native_family;
   int native_type;
   int native_protocol;
@@ -94,14 +121,11 @@ Socket::Socket(Socket::Family family, Socket::Type type) {
 
   sock.posix_socket = socket(native_family, native_type, native_protocol);
   if (sock.posix_socket == -1) {
-    perror("Opening socket");
-    exit(1);
+    throw std::runtime_error(std::string("socket(): ") + strerror(errno));
   }
-  data = sock.generic_data;
-}
+  _data = sock.generic_data;
 
-Socket::~Socket() {
-  close(to_native_socket(*this));
+  _has_socket = true;
 }
 
 int Socket::Bind(const Address &address, int port) {
@@ -127,7 +151,7 @@ int Socket::Listen(int backlog) {
   return 0;
 }
 
-std::unique_ptr<Socket> Socket::Accept() {
+Socket Socket::Accept() {
   sockaddr conn_addr;
   socklen_t conn_addr_len;
   int connection = accept(to_native_socket(*this), &conn_addr, &conn_addr_len);
@@ -135,11 +159,10 @@ std::unique_ptr<Socket> Socket::Accept() {
     throw std::runtime_error(std::string("accept(): ") + strerror(errno));
   }
 
-  std::unique_ptr<Socket> conn_sock =
-      std::make_unique<Socket>(Socket::Family::INET, Socket::Type::STREAM);
+  Socket conn_sock(Socket::Family::INET, Socket::Type::STREAM);
   PosixSocket sock;
   sock.posix_socket = connection;
-  conn_sock->data = sock.generic_data;
+  conn_sock._data = sock.generic_data;
 
   return conn_sock;
 }
@@ -183,7 +206,7 @@ PoolView Socket::Recv(unsigned int max_len) {
   PoolView pool = get_pool(max_len);
   pool.name = "Recv Temp Pool";
 
-  RecvInto(pool.vector());
+  RecvInto(*pool);
 
   return pool;
 }
@@ -200,16 +223,10 @@ size_t Socket::RecvInto(ByteString &buffer) {
 }
 
 size_t Socket::SendAll(const char *data, size_t len) {
-  if (len == 0) len = strlen(data);
-  ByteString b = to_bytestring(data, len);
-  return SendAll(b);
-}
-
-size_t Socket::SendAll(const ByteString &data) {
   ssize_t send_count = 0;
-  while (send_count < data.size()) {
+  while (send_count < len) {
     ssize_t count =
-      send(to_native_socket(*this), data.data() + send_count, data.size() - send_count, 0);
+      send(to_native_socket(*this), data + send_count, len - send_count, 0);
     if (count == -1) {
       throw std::runtime_error(std::string("send(): ") + strerror(errno));
     }
@@ -217,6 +234,10 @@ size_t Socket::SendAll(const ByteString &data) {
   }
 
   return send_count;
+}
+
+size_t Socket::SendAll(const ByteString &data) {
+  return SendAll(data.data(), data.size());
 }
 
 ByteString to_bytestring(const char *msg, size_t len) {

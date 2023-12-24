@@ -16,7 +16,11 @@ public:
 	pool.lock++;
     }
 
-    ~PoolView()
+ PoolView(const PoolView& other):PoolView(other.pool, other.name) {}
+
+ PoolView(PoolView&& other):PoolView(other.pool, other.name) {}
+
+  ~PoolView()
     {
 	pool.lock--;
 	if (*name != '\0')
@@ -27,6 +31,16 @@ public:
 	  {
 	    printf("Relinquishing pool at %p\n", this);
 	  }
+    }
+
+  std::vector<char>& operator*()
+    {
+      return pool.pool;
+    }
+
+  std::vector<char>* operator->()
+    {
+      return &pool.pool;
     }
 
     Pool& pool;

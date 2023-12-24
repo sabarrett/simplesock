@@ -49,10 +49,9 @@ void do_client(Socket& sock)
 
   PoolView view = get_pool(4);
   view.name = "Client send stream pool";
-  OutDataStream stream(view.vector());
+  OutDataStream stream(*view);
   stream.PutUInt32(88223399);
 
-  //ssize_t len = sock.SendAll("Hi, server!");
   ssize_t len = sock.SendAll(stream.GetByteString());
 
   printf("Sent %d bytes\n", (int)len);
@@ -60,7 +59,7 @@ void do_client(Socket& sock)
   PoolView recvPool = sock.Recv(1024);
   recvPool.name = "Client recv pool";
 
-  std::cout << "Client received message '" << recvPool.vector() << "' of length " << recvPool.vector().size() << ".\n";
+  std::cout << "Client received message '" << *recvPool << "' of length " << recvPool->size() << ".\n";
 }
 
 #define STR_ARGS(x) x, sizeof(x)
@@ -77,26 +76,23 @@ void do_server(Socket& sock)
 
   printf("Listened successfully\n");
 
-  std::unique_ptr<Socket> connection = sock.Accept();
+  Socket connection = sock.Accept();
 
   printf("Accepted connection!\n");
 
-  PoolView view = connection->Recv(1024);
+  PoolView view = connection.Recv(1024);
   view.name = "Server recv pool";
   
-  InDataStream stream(view.vector());
+  InDataStream stream(*view);
 
   ByteString& msg = stream.buffer();
 
-  std::cout << "Received message of length " << msg.size() << ": '" << msg << std::endl;
+  std::cout << "Received message of length " << msg.size() << ": '" << msg << "'\n";
 
-  // printf("Received message of length %d: '%*s'\n", (int)msg.size(), (int)msg.size(), msg.data());
-
-  // InDataStream stream(std::move(msg));
   int x = stream.ReadUInt32();
 
   std::cout << "x = " << x << std::endl;
 
-  connection->SendAll(STR_ARGS("Hi there, client!"));
+  connection.SendAll(STR_ARGS("Hi there, client!"));
 }
 
