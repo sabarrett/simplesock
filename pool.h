@@ -1,0 +1,39 @@
+#include <vector>
+
+struct Pool
+{
+    std::vector<char> pool;
+    int lock;
+};
+
+class PoolView
+{
+public:
+ PoolView(Pool& pool, const char* name=""):
+  pool(pool),
+    name(name)
+    {
+	pool.lock++;
+    }
+
+    ~PoolView()
+    {
+	pool.lock--;
+	if (*name != '\0')
+	  {
+	    printf("Relinquishing pool %s\n", name);
+	  }
+	else
+	  {
+	    printf("Relinquishing pool at %p\n", this);
+	  }
+    }
+
+    Pool& pool;
+    const char* name;
+    std::vector<char>& vector() {return pool.pool;}
+};
+
+void add_pool_of_size(size_t size);
+void init_pools(std::vector<size_t> sizes);
+PoolView get_pool(size_t min_size);

@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include "pool.h"
 
 typedef std::vector<char> ByteString;
 
@@ -38,7 +39,7 @@ class Socket
   int Listen(int backlog=16);
   std::unique_ptr<Socket> Accept();
   int Connect(const Address& address, int port);
-  ByteString Recv(unsigned int max_len);
+  PoolView Recv(unsigned int max_len);
   size_t RecvInto(ByteString& buffer);
   size_t SendAll(const char* data, size_t len=0);
   size_t SendAll(const ByteString& data);

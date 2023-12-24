@@ -179,15 +179,13 @@ std::string Socket::Recv(unsigned int max_len) {
 }
 */
 
-ByteString Socket::Recv(unsigned int max_len) {
-  ByteString buffer;
-  buffer.resize(max_len);
+PoolView Socket::Recv(unsigned int max_len) {
+  PoolView pool = get_pool(max_len);
+  pool.name = "Recv Temp Pool";
 
-  size_t len = RecvInto(buffer);
+  RecvInto(pool.vector());
 
-  buffer.resize(len);
-
-  return buffer;
+  return pool;
 }
 
 size_t Socket::RecvInto(ByteString &buffer) {
