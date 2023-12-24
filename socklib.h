@@ -44,8 +44,8 @@ class Socket
   int Listen(int backlog=16);
   Socket Accept();
   int Connect(const Address& address, int port);
-  PoolView Recv(unsigned int max_len);
-  size_t RecvInto(ByteString& buffer);
+  PoolView RecvIntoPool(unsigned int max_len);
+  size_t Recv(ByteString& buffer);
   size_t SendAll(const char* data, size_t len=0);
   size_t SendAll(const ByteString& data);
 

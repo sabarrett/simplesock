@@ -202,16 +202,16 @@ std::string Socket::Recv(unsigned int max_len) {
 }
 */
 
-PoolView Socket::Recv(unsigned int max_len) {
+PoolView Socket::RecvIntoPool(unsigned int max_len) {
   PoolView pool = get_pool(max_len);
   pool.name = "Recv Temp Pool";
 
-  RecvInto(*pool);
+  Recv(*pool);
 
   return pool;
 }
 
-size_t Socket::RecvInto(ByteString &buffer) {
+size_t Socket::Recv(ByteString &buffer) {
   buffer.resize(buffer.capacity());
   ssize_t len = recv(to_native_socket(*this), buffer.data(), buffer.capacity(), 0);
   if (len < 0) {
