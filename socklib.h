@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <arpa/inet.h>
 #include "pool.h"
 
 typedef std::vector<char> ByteString;

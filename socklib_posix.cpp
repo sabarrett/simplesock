@@ -182,26 +182,6 @@ int Socket::Connect(const Address &address, int port) {
   return 0;
 }
 
-/*
-std::string Socket::Recv(unsigned int max_len) {
-  char *buffer = new char[max_len + 1];
-
-  ssize_t len = recv(_data->s, buffer, max_len, 0);
-
-  // Crash if there's an error.
-  if (len < 0)
-    abort();
-
-  buffer[len] = '\0';
-
-  // Create our string from our buffer!
-  std::string str(buffer);
-
-  // We have our string! Now we can return it.
-  return str;
-}
-*/
-
 PoolView Socket::RecvIntoPool(unsigned int max_len) {
   PoolView pool = get_pool(max_len);
   pool.name = "Recv Temp Pool";
