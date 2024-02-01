@@ -1,6 +1,7 @@
 #include "socklib.h"
 
 #define WIN32_LEAN_AND_MEAN
+#define _CRT_SECURE_NO_WARNINGS
 #include <WS2tcpip.h>
 #include <Windows.h>
 #include <winsock2.h>
@@ -47,6 +48,13 @@ union Win32Address {
   IN_ADDR address;
 };
 
+static IN_ADDR to_native_address(Address generic_address)
+{
+    Win32Address win32_address;
+    win32_address.generic_data = generic_address._data;
+    return win32_address.address;
+}
+
 Address::Address(const std::string &name) {
   require(inet_pton(AF_INET, name.c_str(), &_data) == 1, "inet_pton");
 }
@@ -73,7 +81,7 @@ Socket::Socket(Socket::Family family, Socket::Type type): Socket() {
 }
 
 Socket::~Socket() {
-    if (_has_socket) closesocket(to_native_socket(*this)));
+    if (_has_socket) closesocket(to_native_socket(*this));
 }
 
 void Socket::Create(Socket::Family family, Socket::Type type) {
@@ -111,7 +119,7 @@ int Socket::Bind(const Address &address, int port) {
   sockaddr_in service;
   service.sin_family = AF_INET;
   service.sin_port = htons(port);
-  service.sin_addr = address._data->address;
+  service.sin_addr = to_native_address(address);
 
   require(bind(to_native_socket(*this), (sockaddr *)&service, sizeof(service)) != SOCKET_ERROR,
           "bind()");
@@ -141,7 +149,7 @@ int Socket::Connect(const Address &address, int port) {
   sockaddr_in service;
   service.sin_family = AF_INET;
   service.sin_port = htons(port);
-  service.sin_addr = address._data->address;
+  service.sin_addr = to_native_address(address);
 
   require(connect(to_native_socket(*this), (sockaddr *)&service, sizeof(service)) !=
               SOCKET_ERROR,
@@ -150,32 +158,37 @@ int Socket::Connect(const Address &address, int port) {
   return 0;
 }
 
-ByteString Socket::Recv(unsigned int max_len) {
-  ByteString buffer;
-  buffer.resize(max_len);
+size_t Socket::Recv(ByteString &buffer) {
+    buffer.resize(buffer.capacity());
 
-  size_t len = RecvInto(buffer);
+    int len = recv(to_native_socket(*this), buffer.data(), (int)buffer.size(), 0);
+    require(len >= 0, "recv()");
 
-  buffer.resize(len);
+    buffer.resize(len);
 
-  return buffer;
+    return (size_t)len;
 }
 
-size_t Socket::RecvInto(ByteString &buffer) {
-    int len = recv(to_native_socket(*this), buffer.data(), buffer.size(), 0);
-  require(len >= 0, "recv()");
-
-  return len;
-}
-
-size_t Socket::SendAll(const ByteString &data) {
-  size_t send_count = 0;
-  while (send_count < data.size()) {
+size_t Socket::SendAll(const char *data, size_t len) {
+  int send_count = 0;
+  int len_i = len;
+  while (send_count < len_i) {
     int count =
-        send(to_native_socket(*this), data.data() + send_count, data.size() - send_count, 0);
-    require(count != -1, "send()");
+      send(to_native_socket(*this), data + send_count, len_i - send_count, 0);
+    if (count == SOCKET_ERROR) {
+      throw std::runtime_error(std::string("send(): ") + strerror(errno));
+    }
     send_count += count;
   }
 
   return send_count;
+}
+
+size_t Socket::SendAll(const ByteString &data) {
+    return SendAll(data.data(), data.size());
+}
+
+std::ostream &operator<<(std::ostream &s, const ByteString &b) {
+  s.write(b.data(), b.size());
+  return s;
 }

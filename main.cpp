@@ -52,7 +52,7 @@ void do_client(Socket& sock)
   toSend.push_back('a');
   toSend.push_back('b');
   toSend.push_back('c');
-  ssize_t len = sock.SendAll(toSend);
+  size_t len = sock.SendAll(toSend);
 
   printf("Sent %d bytes\n", (int)len);
 
