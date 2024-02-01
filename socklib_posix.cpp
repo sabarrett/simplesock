@@ -3,6 +3,7 @@
 #include <memory>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <arpa/inet.h>
 #include <sstream>
 #include <stdexcept>
 #include <sys/socket.h>
@@ -21,10 +22,10 @@ std::string to_string(const ByteString &s) {
 union PosixAddress
 {
   Address::AddressData generic_data;
-  u_int32_t address;
+  in_addr address;
 };
 
-static u_int32_t to_native_address(Address generic_address)
+static in_addr to_native_address(Address generic_address)
 {
   PosixAddress posix_address;
   posix_address.generic_data = generic_address._data;
@@ -33,21 +34,19 @@ static u_int32_t to_native_address(Address generic_address)
 
 Address::Address(const std::string &name) {
   PosixAddress posix_address;
-
-  u_int32_t address = 0;
-  std::stringstream stream(name);
-  std::string token;
-  int offset = 24;
-  for (int i = 0; i < 4; i++) {
-    std::getline(stream, token, '.');
-    unsigned int byte = 0;
-    std::stringstream to_parse(token);
-    to_parse >> byte;
-    address += byte << (offset - (i * 8));
+  int result;
+  if ((result = inet_pton(AF_INET, name.c_str(), &_data)) != 1)
+  {
+      if (result == 0)
+      {
+	  throw std::runtime_error(std::string("Failed to parse IP address '" + name + "'\n"));
+      }
+      else
+      {
+	  throw std::runtime_error(std::string("inet_pton(): ") + strerror(errno));
+      }
+      exit(1);
   }
-
-  posix_address.address = htonl(address);
-  _data = posix_address.generic_data;
 }
 
 union PosixSocket {
@@ -133,7 +132,7 @@ int Socket::Bind(const Address &address, int port) {
 
   native_address.sin_family = AF_INET;
   native_address.sin_port = htons(port);
-  native_address.sin_addr.s_addr = to_native_address(address);
+  native_address.sin_addr = to_native_address(address);
 
   if (bind(to_native_socket(*this), (sockaddr *)&native_address, sizeof(native_address)) ==
       -1) {
@@ -172,7 +171,7 @@ int Socket::Connect(const Address &address, int port) {
 
   native_address.sin_family = AF_INET;
   native_address.sin_port = htons(port);
-  native_address.sin_addr.s_addr = to_native_address(address);
+  native_address.sin_addr = to_native_address(address);
 
   if (connect(to_native_socket(*this), (sockaddr *)&native_address, sizeof(native_address)) ==
       -1) {

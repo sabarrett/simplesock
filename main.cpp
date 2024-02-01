@@ -41,7 +41,6 @@ int main(int argc, char* argv[])
 
 void do_client(Socket& sock)
 {
-    /*
 
   Address address("127.0.0.1");
 
@@ -50,10 +49,10 @@ void do_client(Socket& sock)
   printf("Connected!\n");
   ByteString toSend;
   toSend.reserve(4);
-  OutDataStream stream(toSend);
-  stream.PutUInt32(88223399);
-
-  ssize_t len = sock.SendAll(stream.GetByteString());
+  toSend.push_back('a');
+  toSend.push_back('b');
+  toSend.push_back('c');
+  ssize_t len = sock.SendAll(toSend);
 
   printf("Sent %d bytes\n", (int)len);
 
@@ -63,14 +62,12 @@ void do_client(Socket& sock)
   sock.Recv(msg);
 
   std::cout << "Client received message '" << msg << "' of length " << msg.size() << ".\n";
-  */
 }
 
 #define STR_ARGS(x) x, sizeof(x)
 
 void do_server(Socket& sock)
 {
-  /*
   Address address("0.0.0.0");
 
   sock.Bind(address, 8000);
@@ -90,15 +87,8 @@ void do_server(Socket& sock)
   
   connection.Recv(msg);
 
-  InDataStream stream(msg);
-
   std::cout << "Received message of length " << msg.size() << ": '" << msg << "'\n";
 
-  int x = stream.ReadUInt32();
-
-  std::cout << "x = " << x << std::endl;
-
   connection.SendAll(STR_ARGS("Hi there, client!"));
-  */
 }
 
