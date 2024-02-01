@@ -41,12 +41,13 @@ int main(int argc, char* argv[])
 
 void do_client(Socket& sock)
 {
+    /*
+
   Address address("127.0.0.1");
 
   sock.Connect(address, 8000);
 
   printf("Connected!\n");
-
   ByteString toSend;
   toSend.reserve(4);
   OutDataStream stream(toSend);
@@ -62,12 +63,14 @@ void do_client(Socket& sock)
   sock.Recv(msg);
 
   std::cout << "Client received message '" << msg << "' of length " << msg.size() << ".\n";
+  */
 }
 
 #define STR_ARGS(x) x, sizeof(x)
 
 void do_server(Socket& sock)
 {
+  /*
   Address address("0.0.0.0");
 
   sock.Bind(address, 8000);
@@ -96,5 +99,6 @@ void do_server(Socket& sock)
   std::cout << "x = " << x << std::endl;
 
   connection.SendAll(STR_ARGS("Hi there, client!"));
+  */
 }
 

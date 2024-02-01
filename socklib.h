@@ -2,7 +2,6 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <arpa/inet.h>
 #include "pool.h"
 
 typedef std::vector<char> ByteString;
@@ -63,63 +62,3 @@ void SockLibShutdown();
 
 ByteString to_bytestring(const char* msg, size_t len);
 std::ostream& operator<<(std::ostream& s, const ByteString& b);
-
-class InDataStream
-{
- public:
- InDataStream(ByteString& string):
-  string(string),
-    head(0)
-    {}
-
-  ByteString& buffer()
-    {
-      return string;
-    }
-
-  int ReadUInt32()
-  {
-    uint32_t x;
-
-    x = *(uint32_t*)&string[head];
-    x = ntohl(x);
-
-    head += sizeof(uint32_t);
-
-    return x;
-  }
-  
- private:
-  ByteString& string;
-  int head;
-};
-
-class OutDataStream
-{
- public:
-
- OutDataStream(ByteString& string):
-  string(string) {}
-  
-  ByteString& GetByteString() {return string;}
-
-  void PutUInt32(uint32_t x)
-  {
-    Data_32 data;
-    data.as_uint = htonl(x);
-    for (int i = 0; i < 4; i++)
-      {
-	string.push_back(data.c[i]);
-      }
-  }
-
- private:
-  union Data_32
-  {
-    char c[4];
-    uint32_t as_uint;
-    int32_t as_int;
-  };
-
-  ByteString& string;
-};
