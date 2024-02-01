@@ -45,7 +45,7 @@ void SockLibShutdown() {
 union Win32Address {
   Address::AddressData generic_data;
   IN_ADDR address;
-}
+};
 
 Address::Address(const std::string &name) {
   require(inet_pton(AF_INET, name.c_str(), &_data) == 1, "inet_pton");
@@ -54,9 +54,29 @@ Address::Address(const std::string &name) {
 union Win32Socket {
     Socket::SocketData generic_data;
     SOCKET s;
+};
+
+static SOCKET to_native_socket(const Socket& generic_socket)
+{
+    Win32Socket win32_socket;
+    win32_socket.generic_data = generic_socket._data;
+    return win32_socket.s;
 }
 
-Socket::Socket(Family family, Type type) {
+Socket::Socket() {
+    memset(_data.data, 0, sizeof(_data.data));
+    _has_socket = false;
+}
+
+Socket::Socket(Socket::Family family, Socket::Type type): Socket() {
+    Create(family, type);
+}
+
+Socket::~Socket() {
+    if (_has_socket) closesocket(to_native_socket(*this)));
+}
+
+void Socket::Create(Socket::Family family, Socket::Type type) {
   int native_family;
   int native_type;
   int native_protocol;
@@ -78,12 +98,13 @@ Socket::Socket(Family family, Type type) {
     throw std::runtime_error("Not implemented");
   }
 
-  _data->s = socket(native_family, native_type, native_protocol);
-  require(_data->s != INVALID_SOCKET, "socket()");
-}
+  Win32Socket sock;
+ 
+  sock.s = socket(native_family, native_type, native_protocol);
+  require(sock.s != INVALID_SOCKET, "socket()");
+  _data = sock.generic_data;
 
-Socket::~Socket() {
-  closesocket(_data->s);
+  _has_socket = true;
 }
 
 int Socket::Bind(const Address &address, int port) {
@@ -92,20 +113,20 @@ int Socket::Bind(const Address &address, int port) {
   service.sin_port = htons(port);
   service.sin_addr = address._data->address;
 
-  require(bind(_data->s, (sockaddr *)&service, sizeof(service)) != SOCKET_ERROR,
+  require(bind(to_native_socket(*this), (sockaddr *)&service, sizeof(service)) != SOCKET_ERROR,
           "bind()");
 
   return 0;
 }
 
 int Socket::Listen(int backlog) {
-  require(listen(_data->s, backlog) != SOCKET_ERROR, "listen()");
+    require(listen(to_native_socket(*this), backlog) != SOCKET_ERROR, "listen()");
 
   return 0;
 }
 
 Socket Socket::Accept() {
-  SOCKET connection = accept(_data->s, NULL, NULL);
+    SOCKET connection = accept(to_native_socket(*this), NULL, NULL);
   require(connection != INVALID_SOCKET, "accept()");
 
   Socket conn_sock(Socket::Family::INET, Socket::Type::STREAM);
@@ -122,7 +143,7 @@ int Socket::Connect(const Address &address, int port) {
   service.sin_port = htons(port);
   service.sin_addr = address._data->address;
 
-  require(connect(_data->s, (sockaddr *)&service, sizeof(service)) !=
+  require(connect(to_native_socket(*this), (sockaddr *)&service, sizeof(service)) !=
               SOCKET_ERROR,
           "connect()");
 
@@ -141,7 +162,7 @@ ByteString Socket::Recv(unsigned int max_len) {
 }
 
 size_t Socket::RecvInto(ByteString &buffer) {
-  int len = recv(_data->s, buffer.data(), buffer.size(), 0);
+    int len = recv(to_native_socket(*this), buffer.data(), buffer.size(), 0);
   require(len >= 0, "recv()");
 
   return len;
@@ -151,7 +172,7 @@ size_t Socket::SendAll(const ByteString &data) {
   size_t send_count = 0;
   while (send_count < data.size()) {
     int count =
-        send(_data->s, data.data() + send_count, data.size() - send_count, 0);
+        send(to_native_socket(*this), data.data() + send_count, data.size() - send_count, 0);
     require(count != -1, "send()");
     send_count += count;
   }
