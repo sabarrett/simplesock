@@ -1,4 +1,7 @@
 #include <string>
+#include <stdlib.h>
+
+size_t strlcpy(char* dst, const char* src, size_t siz);
 
 void set_allocs_should_print(bool should_print);
 
