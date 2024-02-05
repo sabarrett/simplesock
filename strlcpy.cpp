@@ -13,10 +13,8 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#include <sys/types.h>
 #if defined(__GLIBC__) || defined(_WIN32)
-#include <string.h>
-#include <cutils/memory.h>
+#include <stdlib.h>
 /* Implementation of strlcpy() for platforms that don't already have it. */
 /*
  * Copy src to string dst of size siz.  At most siz-1 characters
