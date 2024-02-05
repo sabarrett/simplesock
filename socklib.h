@@ -45,9 +45,13 @@ class Socket
   Socket Accept();
   int Connect(const Address& address, int port);
   PoolView RecvIntoPool(unsigned int max_len);
+  size_t Recv(char* buffer, size_t size);
   size_t Recv(ByteString& buffer);
-  size_t SendAll(const char* data, size_t len=0);
+  size_t Send(const char* data, size_t len);
+  size_t SendAll(const char* data, size_t len);
   size_t SendAll(const ByteString& data);
+
+  static void native_destroy(Socket& socket);
 
   bool _has_socket;
 

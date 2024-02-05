@@ -48,11 +48,10 @@ union Win32Address {
   IN_ADDR address;
 };
 
-static IN_ADDR to_native_address(Address generic_address)
-{
-    Win32Address win32_address;
-    win32_address.generic_data = generic_address._data;
-    return win32_address.address;
+static IN_ADDR to_native_address(Address generic_address) {
+  Win32Address win32_address;
+  win32_address.generic_data = generic_address._data;
+  return win32_address.address;
 }
 
 Address::Address(const std::string &name) {
@@ -60,31 +59,24 @@ Address::Address(const std::string &name) {
 }
 
 union Win32Socket {
-    Socket::SocketData generic_data;
-    SOCKET s;
+  Socket::SocketData generic_data;
+  SOCKET s;
 };
 
-static SOCKET to_native_socket(const Socket& generic_socket)
-{
-    Win32Socket win32_socket;
-    win32_socket.generic_data = generic_socket._data;
-    return win32_socket.s;
+static SOCKET to_native_socket(const Socket &generic_socket) {
+  Win32Socket win32_socket;
+  win32_socket.generic_data = generic_socket._data;
+  return win32_socket.s;
 }
 
-Socket::Socket() {
-    memset(_data.data, 0, sizeof(_data.data));
-    _has_socket = false;
-}
-
-Socket::Socket(Socket::Family family, Socket::Type type): Socket() {
-    Create(family, type);
-}
-
-Socket::~Socket() {
-    if (_has_socket) closesocket(to_native_socket(*this));
+void Socket::native_destroy(Socket &socket) {
+  closesocket(to_native_socket(socket));
 }
 
 void Socket::Create(Socket::Family family, Socket::Type type) {
+  if (_has_socket)
+    throw std::runtime_error("Socket already has an associated system socket.");
+
   int native_family;
   int native_type;
   int native_protocol;
@@ -107,7 +99,7 @@ void Socket::Create(Socket::Family family, Socket::Type type) {
   }
 
   Win32Socket sock;
- 
+
   sock.s = socket(native_family, native_type, native_protocol);
   require(sock.s != INVALID_SOCKET, "socket()");
   _data = sock.generic_data;
@@ -121,20 +113,21 @@ int Socket::Bind(const Address &address, int port) {
   service.sin_port = htons(port);
   service.sin_addr = to_native_address(address);
 
-  require(bind(to_native_socket(*this), (sockaddr *)&service, sizeof(service)) != SOCKET_ERROR,
+  require(bind(to_native_socket(*this), (sockaddr *)&service,
+               sizeof(service)) != SOCKET_ERROR,
           "bind()");
 
   return 0;
 }
 
 int Socket::Listen(int backlog) {
-    require(listen(to_native_socket(*this), backlog) != SOCKET_ERROR, "listen()");
+  require(listen(to_native_socket(*this), backlog) != SOCKET_ERROR, "listen()");
 
   return 0;
 }
 
 Socket Socket::Accept() {
-    SOCKET connection = accept(to_native_socket(*this), NULL, NULL);
+  SOCKET connection = accept(to_native_socket(*this), NULL, NULL);
   require(connection != INVALID_SOCKET, "accept()");
 
   Socket conn_sock(Socket::Family::INET, Socket::Type::STREAM);
@@ -151,44 +144,25 @@ int Socket::Connect(const Address &address, int port) {
   service.sin_port = htons(port);
   service.sin_addr = to_native_address(address);
 
-  require(connect(to_native_socket(*this), (sockaddr *)&service, sizeof(service)) !=
-              SOCKET_ERROR,
+  require(connect(to_native_socket(*this), (sockaddr *)&service,
+                  sizeof(service)) != SOCKET_ERROR,
           "connect()");
 
   return 0;
 }
 
-size_t Socket::Recv(ByteString &buffer) {
-    buffer.resize(buffer.capacity());
+size_t Socket::Recv(char *buffer, size_t size) {
+  int len = recv(to_native_socket(*this), buffer.data(), (int)buffer.size(), 0);
+  require(len >= 0, "recv()");
 
-    int len = recv(to_native_socket(*this), buffer.data(), (int)buffer.size(), 0);
-    require(len >= 0, "recv()");
-
-    buffer.resize(len);
-
-    return (size_t)len;
+  return (size_t)len;
 }
 
-size_t Socket::SendAll(const char *data, size_t len) {
-  int send_count = 0;
+size_t Socket::Send(const char *data, size_t len) {
   int len_i = len;
-  while (send_count < len_i) {
-    int count =
-      send(to_native_socket(*this), data + send_count, len_i - send_count, 0);
-    if (count == SOCKET_ERROR) {
-      throw std::runtime_error(std::string("send(): ") + strerror(errno));
-    }
-    send_count += count;
+  int count = send(to_native_socket(*this), data, len_i, 0);
+  if (count == SOCKET_ERROR) {
+    throw std::runtime_error(std::string("send(): ") + strerror(errno));
   }
-
-  return send_count;
-}
-
-size_t Socket::SendAll(const ByteString &data) {
-    return SendAll(data.data(), data.size());
-}
-
-std::ostream &operator<<(std::ostream &s, const ByteString &b) {
-  s.write(b.data(), b.size());
-  return s;
+  return count;
 }

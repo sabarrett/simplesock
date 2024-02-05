@@ -1,73 +1,57 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string>
 
 #include "defer.h"
 #include "socklib.h"
 
-void do_client(Socket& sock);
-void do_server(Socket& sock);
-void print_allocations(bool to_print);
+void do_client(Socket &sock);
+void do_server(Socket &sock);
 
-int main(int argc, char* argv[])
-{
-    SockLibInit();
-    defer _shutdown_socklib([]() { SockLibShutdown(); });
+int main(int argc, char *argv[]) {
+  SockLibInit();
+  defer _shutdown_socklib([]() { SockLibShutdown(); });
 
-    Socket sock(Socket::Family::INET, Socket::Type::STREAM);
+  Socket sock(Socket::Family::INET, Socket::Type::STREAM);
 
-    std::vector<size_t> pool_sizes;
-    pool_sizes.reserve(8);
-    pool_sizes.push_back(512);
-    pool_sizes.push_back(512);
-    pool_sizes.push_back(2048);
-    pool_sizes.push_back(4096);
-
-    init_pools(pool_sizes);
-
-    print_allocations(true);
-
-    if (argc > 1)
-    {
-        do_server(sock);
-    }
-    else
-    {
-        do_client(sock);
-    }
+  if (argc > 1) {
+    do_server(sock);
+  } else {
+    do_client(sock);
+  }
 }
 
+#define STR_ARGS(x) x, sizeof(x) - 1
 
-void do_client(Socket& sock)
-{
+ByteString& bytestring_append(ByteString &str, const char *c_str) {
+  while (*c_str != '\0') {
+    str.push_back(*c_str++);
+  }
+  return str;
+}
 
-  Address address("127.0.0.1");
+void do_client(Socket &sock) {
+  Address address("68.183.63.165");
 
-  sock.Connect(address, 8000);
+  sock.Connect(address, 7778);
 
   printf("Connected!\n");
-  ByteString toSend;
-  toSend.reserve(4);
-  toSend.push_back('a');
-  toSend.push_back('b');
-  toSend.push_back('c');
-  size_t len = sock.SendAll(toSend);
+  char to_send[] = "LIST -9 7 401 100";
+  size_t len = sock.Send(to_send, sizeof(to_send) - 1);
 
   printf("Sent %d bytes\n", (int)len);
 
-  ByteString msg;
-  msg.reserve(1024);
+  static char recv_buffer[1024];
 
-  sock.Recv(msg);
+  size_t recv_buffer_len = sock.Recv(recv_buffer, sizeof(recv_buffer));
 
-  std::cout << "Client received message '" << msg << "' of length " << msg.size() << ".\n";
+  std::cout << "Client received message '";
+  std::cout.write(recv_buffer, recv_buffer_len);
+  std::cout << "' of length " << recv_buffer_len << ".\n";
 }
 
-#define STR_ARGS(x) x, sizeof(x)
-
-void do_server(Socket& sock)
-{
+void do_server(Socket &sock) {
   Address address("0.0.0.0");
 
   sock.Bind(address, 8000);
@@ -83,12 +67,12 @@ void do_server(Socket& sock)
   printf("Accepted connection!\n");
 
   ByteString msg;
-  msg.reserve(1024);
-  
+  msg.resize(1024);
+
   connection.Recv(msg);
 
-  std::cout << "Received message of length " << msg.size() << ": '" << msg << "'\n";
+  std::cout << "Received message of length " << msg.size() << ": '" << msg
+            << "'\n";
 
   connection.SendAll(STR_ARGS("Hi there, client!"));
 }
-

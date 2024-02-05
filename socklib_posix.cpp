@@ -1,32 +1,25 @@
 #include "socklib.h"
+#include <arpa/inet.h>
 #include <cstring>
 #include <memory>
 #include <netinet/in.h>
 #include <netinet/ip.h>
-#include <arpa/inet.h>
 #include <sstream>
 #include <stdexcept>
+#include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
-#include <string.h>
 
 void SockLibInit() {}
 void SockLibShutdown() {}
 
-std::string to_string(const ByteString &s) {
-  std::string str(s.begin(), s.end());
-  return str;
-}
-
-union PosixAddress
-{
+union PosixAddress {
   Address::AddressData generic_data;
   in_addr address;
 };
 
-static in_addr to_native_address(Address generic_address)
-{
+static in_addr to_native_address(Address generic_address) {
   PosixAddress posix_address;
   posix_address.generic_data = generic_address._data;
   return posix_address.address;
@@ -35,17 +28,13 @@ static in_addr to_native_address(Address generic_address)
 Address::Address(const std::string &name) {
   PosixAddress posix_address;
   int result;
-  if ((result = inet_pton(AF_INET, name.c_str(), &_data)) != 1)
-  {
-      if (result == 0)
-      {
-	  throw std::runtime_error(std::string("Failed to parse IP address '" + name + "'\n"));
-      }
-      else
-      {
-	  throw std::runtime_error(std::string("inet_pton(): ") + strerror(errno));
-      }
-      exit(1);
+  if ((result = inet_pton(AF_INET, name.c_str(), &_data)) != 1) {
+    if (result == 0) {
+      throw std::runtime_error(
+          std::string("Failed to parse IP address '" + name + "'\n"));
+    }
+
+    throw std::runtime_error(std::string("inet_pton(): ") + strerror(errno));
   }
 }
 
@@ -54,8 +43,7 @@ union PosixSocket {
   int posix_socket;
 };
 
-static int to_native_socket(const Socket& generic_socket)
-{
+static int to_native_socket(const Socket &generic_socket) {
   PosixSocket posix_socket;
   posix_socket.generic_data = generic_socket._data;
   return posix_socket.posix_socket;
@@ -63,32 +51,15 @@ static int to_native_socket(const Socket& generic_socket)
 
 // Socket Class
 
-Socket::Socket() {
-  memset(_data.data, 0, sizeof(_data.data));
-  _has_socket = false;
+void Socket::native_destroy(Socket& socket) {
+    close(to_native_socket(socket));
 }
 
-Socket::Socket(Socket::Family family, Socket::Type type):Socket() {
-  Create(family, type);
-}
 
-Socket::Socket(Socket&& other) {
-  _has_socket = other._has_socket;
-  memcpy(_data.data, other._data.data, sizeof(_data.data));
-
-  other._has_socket = false;
-  memset(other._data.data, 0, sizeof(other._data.data));
-}
-
-Socket::~Socket() {
-  if (_has_socket) close(to_native_socket(*this));
-}
-
-void Socket::Create(Socket::Family family, Socket::Type type)
-{
+void Socket::Create(Socket::Family family, Socket::Type type) {
   if (_has_socket)
     throw std::runtime_error("Socket already has an associated system socket.");
-  
+
   int native_family;
   int native_type;
   int native_protocol;
@@ -107,11 +78,11 @@ void Socket::Create(Socket::Family family, Socket::Type type)
   switch (type) {
   case Socket::Type::STREAM:
     native_type = SOCK_STREAM;
-    native_protocol = 6;
+    native_protocol = IPPROTO_TCP;
     break;
   case Socket::Type::DGRAM:
     native_type = SOCK_DGRAM;
-    native_protocol = 0; // I don't know this
+    native_protocol = IPPROTO_UDP;
   default:
     exit(1);
   }
@@ -134,8 +105,8 @@ int Socket::Bind(const Address &address, int port) {
   native_address.sin_port = htons(port);
   native_address.sin_addr = to_native_address(address);
 
-  if (bind(to_native_socket(*this), (sockaddr *)&native_address, sizeof(native_address)) ==
-      -1) {
+  if (bind(to_native_socket(*this), (sockaddr *)&native_address,
+           sizeof(native_address)) == -1) {
     throw std::runtime_error(std::string("bind(): ") + strerror(errno));
   }
 
@@ -173,62 +144,28 @@ int Socket::Connect(const Address &address, int port) {
   native_address.sin_port = htons(port);
   native_address.sin_addr = to_native_address(address);
 
-  if (connect(to_native_socket(*this), (sockaddr *)&native_address, sizeof(native_address)) ==
-      -1) {
+  if (connect(to_native_socket(*this), (sockaddr *)&native_address,
+              sizeof(native_address)) == -1) {
     throw std::runtime_error(std::string("connect(): ") + strerror(errno));
   }
 
   return 0;
 }
 
-PoolView Socket::RecvIntoPool(unsigned int max_len) {
-  PoolView pool = get_pool(max_len);
-  pool.name = "Recv Temp Pool";
-
-  Recv(*pool);
-
-  return pool;
-}
-
-size_t Socket::Recv(ByteString &buffer) {
-  buffer.resize(buffer.capacity());
-  ssize_t len = recv(to_native_socket(*this), buffer.data(), buffer.capacity(), 0);
+size_t Socket::Recv(char *buffer, size_t size) {
+  ssize_t len = recv(to_native_socket(*this), buffer, size, 0);
   if (len < 0) {
     throw std::runtime_error(std::string("recv(): ") + strerror(errno));
   }
-  buffer.resize(len);
 
   return len;
 }
 
-size_t Socket::SendAll(const char *data, size_t len) {
-  ssize_t send_count = 0;
-  while (send_count < len) {
-    ssize_t count =
-      send(to_native_socket(*this), data + send_count, len - send_count, 0);
-    if (count == -1) {
-      throw std::runtime_error(std::string("send(): ") + strerror(errno));
-    }
-    send_count += count;
+size_t Socket::Send(const char *data, size_t len) {
+  ssize_t count = send(to_native_socket(*this), data, len, 0);
+  if (count == -1) {
+    throw std::runtime_error(std::string("send(): ") + strerror(errno));
   }
 
-  return send_count;
-}
-
-size_t Socket::SendAll(const ByteString &data) {
-  return SendAll(data.data(), data.size());
-}
-
-ByteString to_bytestring(const char *msg, size_t len) {
-  ByteString str;
-  str.reserve(len);
-  for (const char *p = msg; *p != '\0'; p++) {
-    str.push_back(*p);
-  }
-  return str;
-}
-
-std::ostream &operator<<(std::ostream &s, const ByteString &b) {
-  s.write(b.data(), b.size());
-  return s;
+  return count;
 }
