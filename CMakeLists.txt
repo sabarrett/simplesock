@@ -19,4 +19,4 @@ if (WIN32)
 	target_sources(SimpleSock PRIVATE socklib_win32.cpp)
 endif (WIN32)
 
-target_sources(SimpleSock PRIVATE pool.cpp)
+target_sources(SimpleSock PRIVATE pool.cpp allocators.cpp)
