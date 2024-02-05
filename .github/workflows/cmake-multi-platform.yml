@@ -30,7 +30,7 @@ jobs:
           - os: windows-latest
             c_compiler: cl
             cpp_compiler: cl
-            bin_path: .\Debug\SimpleSock
+            bin_path: .\Debug\SimpleSock.exe
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
