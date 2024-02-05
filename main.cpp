@@ -10,6 +10,8 @@ void do_client(Socket &sock);
 void do_server(Socket &sock);
 
 int main(int argc, char *argv[]) {
+    std::cout << "Hello, world!";
+    return 0;
   SockLibInit();
   defer _shutdown_socklib([]() { SockLibShutdown(); });
 
