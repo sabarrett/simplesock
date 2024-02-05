@@ -13,7 +13,6 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#if defined(__GLIBC__) || defined(_WIN32)
 #include <stdlib.h>
 /* Implementation of strlcpy() for platforms that don't already have it. */
 /*
@@ -43,6 +42,5 @@ strlcpy(char *dst, const char *src, size_t siz)
 	}
 	return(s - src - 1);	/* count does not include NUL */
 }
-#endif
 
 // Scott's Note: I am offended that Win32 doesn't include this function.
