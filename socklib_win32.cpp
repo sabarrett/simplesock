@@ -1,7 +1,7 @@
-#include "socklib.h"
-
-#define WIN32_LEAN_AND_MEAN
 #define _CRT_SECURE_NO_WARNINGS
+#define WIN32_LEAN_AND_MEAN
+
+#include "socklib.h"
 #include <WS2tcpip.h>
 #include <Windows.h>
 #include <winsock2.h>
@@ -152,14 +152,14 @@ int Socket::Connect(const Address &address, int port) {
 }
 
 size_t Socket::Recv(char *buffer, size_t size) {
-  int len = recv(to_native_socket(*this), buffer.data(), (int)buffer.size(), 0);
+  int len = recv(to_native_socket(*this), buffer, (int)size, 0);
   require(len >= 0, "recv()");
 
   return (size_t)len;
 }
 
 size_t Socket::Send(const char *data, size_t len) {
-  int len_i = len;
+    int len_i = (int)len;
   int count = send(to_native_socket(*this), data, len_i, 0);
   if (count == SOCKET_ERROR) {
     throw std::runtime_error(std::string("send(): ") + strerror(errno));

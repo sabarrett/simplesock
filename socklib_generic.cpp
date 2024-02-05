@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string.h>
 #include "socklib.h"
 
 std::string to_string(const ByteString &s) {
