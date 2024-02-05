@@ -5,15 +5,18 @@
 
 #include "defer.h"
 #include "socklib.h"
+#include "allocators.h"
 
 void do_client(Socket &sock);
 void do_server(Socket &sock);
 
 int main(int argc, char *argv[]) {
-  SockLibInit();
-  defer _shutdown_socklib([]() { SockLibShutdown(); });
-
-  Socket sock(Socket::Family::INET, Socket::Type::STREAM);
+    AllocationContext _("socklib_setup");
+    SockLibInit();
+    defer _shutdown_socklib([]() { SockLibShutdown(); });
+    
+    AllocationContext __("sock_creation");
+    Socket sock(Socket::Family::INET, Socket::Type::STREAM);
 
   if (argc > 1) {
     do_server(sock);
@@ -32,6 +35,8 @@ ByteString& bytestring_append(ByteString &str, const char *c_str) {
 }
 
 void do_client(Socket &sock) {
+        AllocationContext _("do_server");
+
   Address address("68.183.63.165");
 
   sock.Connect(address, 7778);
