@@ -46,10 +46,6 @@ jobs:
             c_compiler: clang
           - os: ubuntu-latest
             c_compiler: cl
-          - os: windows-latest
-            bin_path: ./SimpleSock
-          - os: ubuntu-latest
-            bin_path: .\Debug\SimpleSock
 
     steps:
     - uses: actions/checkout@v3
