@@ -3,7 +3,7 @@
 #include <memory>
 #include <new>
 
-static bool should_print = false;
+static bool should_print = true;
 
 void print_allocations(bool to_print) { should_print = to_print; }
 
