@@ -6,8 +6,8 @@ add_executable(SimpleSock main.cpp socklib_generic.cpp)
 
 target_compile_features(SimpleSock PRIVATE cxx_std_17)
 
-target_compile_options(SimpleSock PRIVATE -fsanitize=address)
-target_link_options(SimpleSock PRIVATE -fsanitize=address)
+# target_compile_options(SimpleSock PRIVATE -fsanitize=address)
+# target_link_options(SimpleSock PRIVATE -fsanitize=address)
 
 set(CMAKE_BUILD_TYPE Debug)
 
@@ -19,4 +19,4 @@ if (WIN32)
 	target_sources(SimpleSock PRIVATE socklib_win32.cpp)
 endif (WIN32)
 
-target_sources(SimpleSock PRIVATE allocators.cpp pool.cpp)
+target_sources(SimpleSock PRIVATE pool.cpp)
