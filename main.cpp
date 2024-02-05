@@ -11,11 +11,11 @@ void do_client(Socket &sock);
 void do_server(Socket &sock);
 
 int main(int argc, char *argv[]) {
-    AllocationContext _("socklib_setup");
+    // AllocationContext _("socklib_setup");
     SockLibInit();
     defer _shutdown_socklib([]() { SockLibShutdown(); });
     
-    AllocationContext __("sock_creation");
+    // AllocationContext __("sock_creation");
     Socket sock(Socket::Family::INET, Socket::Type::STREAM);
 
   if (argc > 1) {
@@ -35,7 +35,7 @@ ByteString& bytestring_append(ByteString &str, const char *c_str) {
 }
 
 void do_client(Socket &sock) {
-        AllocationContext _("do_server");
+    // AllocationContext _("do_server");
 
   Address address("68.183.63.165");
 

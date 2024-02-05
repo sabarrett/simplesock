@@ -42,5 +42,3 @@ strlcpy(char *dst, const char *src, size_t siz)
 	}
 	return(s - src - 1);	/* count does not include NUL */
 }
-
-// Scott's Note: I am offended that Win32 doesn't include this function.
