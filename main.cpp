@@ -18,6 +18,11 @@ std::string do_client(std::istream &in_stream) {
   return std::string();
 }
 
+std::string build_string(std::istream &in_stream) {
+  /* TODO (optional): implement this function */
+  return std::string();
+}
+
 int run_test() {
   std::stringstream input("30\n500\n-12\n3.6\n"
 			  "not a number\n200also not a number\n"
