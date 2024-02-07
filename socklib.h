@@ -9,7 +9,7 @@ typedef std::vector<char> ByteString;
 class Address
 {
  public:
-  Address(const std::string& name);
+  Address(const std::string& name, int port);
 
   struct AddressData
   {
@@ -40,10 +40,10 @@ class Socket
   Socket(Socket&& other);
 
   void Create(Family family, Type type);
-  int Bind(const Address& address, int port);
+  int Bind(const Address& address);
   int Listen(int backlog=16);
   Socket Accept();
-  int Connect(const Address& address, int port);
+  int Connect(const Address& address);
   PoolView RecvIntoPool(unsigned int max_len);
   size_t Recv(char* buffer, size_t size);
   size_t Recv(ByteString& buffer);

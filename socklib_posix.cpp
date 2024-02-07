@@ -16,19 +16,19 @@ void SockLibShutdown() {}
 
 union PosixAddress {
   Address::AddressData generic_data;
-  in_addr address;
+  sockaddr_in address;
 };
 
-static in_addr to_native_address(Address generic_address) {
+static sockaddr_in to_native_address(Address generic_address) {
   PosixAddress posix_address;
   posix_address.generic_data = generic_address._data;
   return posix_address.address;
 }
 
-Address::Address(const std::string &name) {
+Address::Address(const std::string &name, int port) {
   PosixAddress posix_address;
   int result;
-  if ((result = inet_pton(AF_INET, name.c_str(), &_data)) != 1) {
+  if ((result = inet_pton(AF_INET, name.c_str(), &posix_address.address.sin_addr)) != 1) {
     if (result == 0) {
       throw std::runtime_error(
           std::string("Failed to parse IP address '" + name + "'\n"));
@@ -36,6 +36,12 @@ Address::Address(const std::string &name) {
 
     throw std::runtime_error(std::string("inet_pton(): ") + strerror(errno));
   }
+
+  posix_address.address.sin_port = htons(port);
+  posix_address.address.sin_family = AF_INET;
+
+  assert(sizeof(_data) >= sizeof(posix_address.address));
+  memcpy(&_data, &posix_address, sizeof(posix_address));
 }
 
 union PosixSocket {
@@ -98,15 +104,11 @@ void Socket::Create(Socket::Family family, Socket::Type type) {
   _has_socket = true;
 }
 
-int Socket::Bind(const Address &address, int port) {
-  sockaddr_in native_address;
+int Socket::Bind(const Address &address) {
+  sockaddr_in native_addr = to_native_address(address);
 
-  native_address.sin_family = AF_INET;
-  native_address.sin_port = htons(port);
-  native_address.sin_addr = to_native_address(address);
-
-  if (bind(to_native_socket(*this), (sockaddr *)&native_address,
-           sizeof(native_address)) == -1) {
+  if (bind(to_native_socket(*this), (sockaddr *)&native_addr,
+           sizeof(native_addr)) == -1) {
     throw std::runtime_error(std::string("bind(): ") + strerror(errno));
   }
 
@@ -133,19 +135,14 @@ Socket Socket::Accept() {
   PosixSocket sock;
   sock.posix_socket = connection;
   conn_sock._data = sock.generic_data;
-
   return conn_sock;
 }
 
-int Socket::Connect(const Address &address, int port) {
-  sockaddr_in native_address;
+int Socket::Connect(const Address &address) {
+  sockaddr_in native_addr = to_native_address(address);
 
-  native_address.sin_family = AF_INET;
-  native_address.sin_port = htons(port);
-  native_address.sin_addr = to_native_address(address);
-
-  if (connect(to_native_socket(*this), (sockaddr *)&native_address,
-              sizeof(native_address)) == -1) {
+  if (connect(to_native_socket(*this), (sockaddr *)&native_addr,
+              sizeof(native_addr)) == -1) {
     throw std::runtime_error(std::string("connect(): ") + strerror(errno));
   }
 

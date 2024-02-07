@@ -4,18 +4,52 @@
 
 #include "socklib.h"
 
-std::string do_client(std::istream &in_stream);
-int run_test();
+void do_client();
+void do_server();
 
 int main(int argc, char *argv[]) {
-  /* TODO: ADD SETUP CODE HERE */
+  if (argc == 1) do_client();
+  else do_server();
 
-  return run_test();
+  return 0;
 }
 
-std::string do_client(std::istream &in_stream) {
-  /* TODO: ADD FUNCTION IMPLEMENTATION HERE */
-  return std::string();
+void do_client() {
+  Socket connection(Socket::Family::INET, Socket::Type::STREAM);
+  
+  Address addr("127.0.0.1", 7778);
+
+  std::cout << "[Client] connecting...\n";
+  connection.Connect(addr);
+
+  std::cout << "[Client] connected.\n";
+  std::string to_send("Hi server!");
+  std::cout << "[Client] sending...\n";
+  size_t nbytes_sent = connection.Send(to_send.data(), to_send.size());
+
+  std::cout << "[Client] sent " << nbytes_sent << " bytes.\n";
+}
+
+void do_server() {
+  std::cout << "[Server] running...\n";
+  Socket listen_sock(Socket::Family::INET, Socket::Type::STREAM);
+  Address addr("127.0.0.1", 7778);
+
+  listen_sock.Bind(addr);
+
+  listen_sock.Listen();
+
+  std::cout << "[Server] accepting...\n";
+  Socket conn_sock = listen_sock.Accept();
+
+  std::cout << "[Server] conn received...\n";
+
+  char buffer[4096];
+
+  std::cout << "[Server] receiving...\n";
+  size_t nbytes_received = conn_sock.Recv(buffer, sizeof(buffer));
+  
+  std::cout << "Received message '" << std::string(buffer, nbytes_received) << "'\n";
 }
 
 std::string build_string(std::istream &in_stream) {
@@ -23,23 +57,3 @@ std::string build_string(std::istream &in_stream) {
   return std::string();
 }
 
-int run_test() {
-  std::stringstream input("30\n500\n-12\n3.6\n"
-			  "not a number\n200also not a number\n"
-			  "88.1\ndone");
-
-  std::cout << "Testing on input '" << input.str() << "'.\n";
-
-  std::string msg = do_client(input);
-  std::string expected("SORTED -12 3.6 30 500 88.1");
-  std::cout << "do_client() returned '" << msg << "'.\n";
-
-  if (msg != expected) {
-    std::cout << "TEST FAILED. Expected '" << expected << "' but was '" << msg
-              << "'.\n";
-    return 1;
-  }
-  
-  std::cout << "Recieved expected message '" << msg << "'. Test passed 😄\n";
-  return 0;
-}
