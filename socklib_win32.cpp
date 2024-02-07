@@ -45,17 +45,22 @@ void SockLibShutdown() {
 
 union Win32Address {
   Address::AddressData generic_data;
-  IN_ADDR address;
+  SOCKADDR_IN address;
 };
 
-static IN_ADDR to_native_address(Address generic_address) {
+static SOCKADDR_IN to_native_address(Address generic_address) {
   Win32Address win32_address;
   win32_address.generic_data = generic_address._data;
   return win32_address.address;
 }
 
-Address::Address(const std::string &name) {
-  require(inet_pton(AF_INET, name.c_str(), &_data) == 1, "inet_pton");
+Address::Address(const std::string &name, int port) {
+  Win32Address win32_addr;
+  require(inet_pton(AF_INET, name.c_str(), &win32_addr.address.sin_addr) == 1, "inet_pton");
+  win32_addr.address.sin_port = htons(port);
+  win32_addr.address.sin_family = AF_INET;
+
+  memcpy(&_data, &win32_addr, sizeof(win32_addr);
 }
 
 union Win32Socket {
@@ -107,14 +112,10 @@ void Socket::Create(Socket::Family family, Socket::Type type) {
   _has_socket = true;
 }
 
-int Socket::Bind(const Address &address, int port) {
-  sockaddr_in service;
-  service.sin_family = AF_INET;
-  service.sin_port = htons(port);
-  service.sin_addr = to_native_address(address);
-
-  require(bind(to_native_socket(*this), (sockaddr *)&service,
-               sizeof(service)) != SOCKET_ERROR,
+int Socket::Bind(const Address &address) {
+  SOCKADDR_IN native_addr = to_native_address(address);
+  require(bind(to_native_socket(*this), (sockaddr *)&native_addr,
+               sizeof(native_addr)) != SOCKET_ERROR,
           "bind()");
 
   return 0;
@@ -138,14 +139,11 @@ Socket Socket::Accept() {
   return conn_sock;
 }
 
-int Socket::Connect(const Address &address, int port) {
-  sockaddr_in service;
-  service.sin_family = AF_INET;
-  service.sin_port = htons(port);
-  service.sin_addr = to_native_address(address);
+int Socket::Connect(const Address &address) {
+  SOCKADDR_IN native_addr = to_native_address(address);
 
-  require(connect(to_native_socket(*this), (sockaddr *)&service,
-                  sizeof(service)) != SOCKET_ERROR,
+  require(connect(to_native_socket(*this), (sockaddr *)&native_addr,
+                  sizeof(native_addr)) != SOCKET_ERROR,
           "connect()");
 
   return 0;
