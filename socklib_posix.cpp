@@ -1,6 +1,7 @@
 #include "socklib.h"
 #include <arpa/inet.h>
 #include <cstring>
+#include <cassert>
 #include <memory>
 #include <netinet/in.h>
 #include <netinet/ip.h>
