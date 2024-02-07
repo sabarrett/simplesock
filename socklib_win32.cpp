@@ -156,6 +156,16 @@ size_t Socket::Recv(char *buffer, size_t size) {
   return (size_t)len;
 }
 
+size_t Socket::RecvFrom(char* buffer, size_t size, Address& src) {
+  Win32Address native_addr;
+  int socklen = sizeof(native_addr.address);
+  int count = recvfrom(to_native_socket(*this), buffer, (int)size, 0, (sockaddr*)&native_addr.address, &socklen);
+  require(count != SOCKET_ERROR, "recvfrom()");
+
+  src._data = native_addr.generic_data;
+  return count;
+}
+
 size_t Socket::Send(const char *data, size_t len) {
     int len_i = (int)len;
   int count = send(to_native_socket(*this), data, len_i, 0);
@@ -163,4 +173,22 @@ size_t Socket::Send(const char *data, size_t len) {
     throw std::runtime_error(std::string("send(): ") + strerror(errno));
   }
   return count;
+}
+
+size_t Socket::SendTo(const char* data, size_t len, const Address& dst) {
+  SOCKADDR_IN native_addr = to_native_address(dst);
+
+  int count = sendto(to_native_socket(*this), data, (int)len, 0, (sockaddr*)&native_addr, sizeof(native_addr));
+  require(count != SOCKET_ERROR, "sendto()");
+
+  return count;
+}
+
+std::ostream& operator<<(std::ostream& s, const Address& a) {
+  SOCKADDR_IN nat_addr = to_native_address(a);
+  s << inet_ntoa(nat_addr.sin_addr);
+  s << ":";
+  s << ntohs(nat_addr.sin_port);
+
+  return s;
 }
