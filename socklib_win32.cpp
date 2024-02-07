@@ -78,6 +78,19 @@ void Socket::native_destroy(Socket &socket) {
   closesocket(to_native_socket(socket));
 }
 
+int Socket::SetNonBlockingMode(bool shouldBeNonBlocking) {
+  if (!_has_socket) {
+    throw std::runtime_error(std::string("Socket has not yet been created"));
+  }
+
+  SOCKET sock = to_native_socket(*this);
+  unsigned long value = shouldBeNonBlocking ? 1 : 0;
+  int result = ioctlsocket(sock, FIONBIO, &value);
+  require(result != SOCKET_ERROR, "ioctlsocket()");
+
+  return 0;
+}
+
 void Socket::Create(Socket::Family family, Socket::Type type) {
   if (_has_socket)
     throw std::runtime_error("Socket already has an associated system socket.");

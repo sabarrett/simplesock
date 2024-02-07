@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
+#include <fcntl.h>
 
 void SockLibInit() {}
 void SockLibShutdown() {}
@@ -62,6 +63,30 @@ void Socket::native_destroy(Socket& socket) {
     close(to_native_socket(socket));
 }
 
+int Socket::SetNonBlockingMode(bool shouldBeNonBlocking) {
+  if (!_has_socket) {
+    throw std::runtime_error(std::string("Socket has not yet been created"));
+  }
+
+  int sock = to_native_socket(*this);
+
+  int flags = fcntl(sock, F_GETFL, 0);
+  if (flags == -1) {
+    throw std::runtime_error(std::string("fcntl(): ") + strerror(errno));
+  }
+  if (shouldBeNonBlocking) {
+    flags |= O_NONBLOCK;
+  } else {
+    flags &= ~O_NONBLOCK;
+  }
+
+  int result = fcntl(sock, F_SETFL, flags);
+  if (result == -1) {
+    throw std::runtime_error(std::string("fcntl(): ") + strerror(errno));
+  }
+
+  return 0;
+}
 
 void Socket::Create(Socket::Family family, Socket::Type type) {
   if (_has_socket)

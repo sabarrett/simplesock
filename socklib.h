@@ -40,6 +40,9 @@ class Socket
   Socket(const Socket& other) = delete;
   Socket(Socket&& other);
 
+  int SetNonBlockingMode(bool shouldBeNonBlocking);
+
+
   void Create(Family family, Type type);
   int Bind(const Address& address);
   int Listen(int backlog=16);
