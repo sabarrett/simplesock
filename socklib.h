@@ -9,8 +9,9 @@ typedef std::vector<char> ByteString;
 class Address
 {
  public:
+  Address(): _data{0} {}
   Address(const std::string& name, int port);
-
+  
   struct AddressData
   {
     char data[32];
@@ -47,7 +48,9 @@ class Socket
   PoolView RecvIntoPool(unsigned int max_len);
   size_t Recv(char* buffer, size_t size);
   size_t Recv(ByteString& buffer);
+  size_t RecvFrom(char* buffer, size_t size, Address& src);
   size_t Send(const char* data, size_t len);
+  size_t SendTo(const char* buffer, size_t len, const Address& dest);
   size_t SendAll(const char* data, size_t len);
   size_t SendAll(const ByteString& data);
 
@@ -66,3 +69,4 @@ void SockLibShutdown();
 
 ByteString to_bytestring(const char* msg, size_t len);
 std::ostream& operator<<(std::ostream& s, const ByteString& b);
+std::ostream& operator<<(std::ostream& s, const Address& a);

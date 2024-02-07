@@ -15,41 +15,35 @@ int main(int argc, char *argv[]) {
 }
 
 void do_client() {
-  Socket connection(Socket::Family::INET, Socket::Type::STREAM);
+  Socket send_sock(Socket::Family::INET, Socket::Type::DGRAM);
   
   Address addr("127.0.0.1", 7778);
+  Address my_addr("127.0.0.1", 52000);
+  send_sock.Bind(my_addr);
 
-  std::cout << "[Client] connecting...\n";
-  connection.Connect(addr);
-
-  std::cout << "[Client] connected.\n";
   std::string to_send("Hi server!");
-  std::cout << "[Client] sending...\n";
-  size_t nbytes_sent = connection.Send(to_send.data(), to_send.size());
+  std::cout << "[Client] sending to '" << addr << "'...\n";
+  size_t nbytes_sent = send_sock.SendTo(to_send.data(), to_send.size(), addr);
 
   std::cout << "[Client] sent " << nbytes_sent << " bytes.\n";
 }
 
 void do_server() {
   std::cout << "[Server] running...\n";
-  Socket listen_sock(Socket::Family::INET, Socket::Type::STREAM);
-  Address addr("127.0.0.1", 7778);
-
-  listen_sock.Bind(addr);
-
-  listen_sock.Listen();
-
-  std::cout << "[Server] accepting...\n";
-  Socket conn_sock = listen_sock.Accept();
-
-  std::cout << "[Server] conn received...\n";
+  Socket conn_sock(Socket::Family::INET, Socket::Type::DGRAM);
 
   char buffer[4096];
 
   std::cout << "[Server] receiving...\n";
-  size_t nbytes_received = conn_sock.Recv(buffer, sizeof(buffer));
+  Address addr("127.0.0.1", 7778);
+  conn_sock.Bind(addr);
+
+  Address from_addr;
+
+  size_t nbytes_received = conn_sock.RecvFrom(buffer, sizeof(buffer), from_addr);
   
-  std::cout << "Received message '" << std::string(buffer, nbytes_received) << "'\n";
+  std::cout << "[Server] received message '" << std::string(buffer, nbytes_received)
+	    << "' from host '" << from_addr << "'\n";
 }
 
 std::string build_string(std::istream &in_stream) {

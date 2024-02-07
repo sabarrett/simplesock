@@ -90,6 +90,7 @@ void Socket::Create(Socket::Family family, Socket::Type type) {
   case Socket::Type::DGRAM:
     native_type = SOCK_DGRAM;
     native_protocol = IPPROTO_UDP;
+    break;
   default:
     exit(1);
   }
@@ -159,6 +160,18 @@ size_t Socket::Recv(char *buffer, size_t size) {
   return len;
 }
 
+size_t Socket::RecvFrom(char* buffer, size_t size, Address& src) {
+  PosixAddress native_addr;
+  socklen_t socklen = sizeof(native_addr.address);
+  ssize_t count = recvfrom(to_native_socket(*this), buffer, size, 0, (sockaddr*)&native_addr.address, &socklen);
+  if (count == -1) {
+    throw std::runtime_error(std::string("recvfrom(): ") + strerror(errno));
+  }
+
+  src._data = native_addr.generic_data;
+  return count;
+}
+
 size_t Socket::Send(const char *data, size_t len) {
   ssize_t count = send(to_native_socket(*this), data, len, 0);
   if (count == -1) {
@@ -166,4 +179,24 @@ size_t Socket::Send(const char *data, size_t len) {
   }
 
   return count;
+}
+
+size_t Socket::SendTo(const char* data, size_t len, const Address& dst) {
+  sockaddr_in native_addr = to_native_address(dst);
+
+  ssize_t count = sendto(to_native_socket(*this), data, len, 0, (sockaddr*)&native_addr, sizeof(native_addr));
+  if (count == -1) {
+    throw std::runtime_error(std::string("sendto(): ") + strerror(errno));
+  }
+
+  return count;
+}
+
+std::ostream& operator<<(std::ostream& s, const Address& a) {
+  sockaddr_in nat_addr = to_native_address(a);
+  s << inet_ntoa(nat_addr.sin_addr);
+  s << ":";
+  s << ntohs(nat_addr.sin_port);
+
+  return s;
 }
