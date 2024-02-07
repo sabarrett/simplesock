@@ -60,7 +60,7 @@ Address::Address(const std::string &name, int port) {
   win32_addr.address.sin_port = htons(port);
   win32_addr.address.sin_family = AF_INET;
 
-  memcpy(&_data, &win32_addr, sizeof(win32_addr);
+  memcpy(&_data, &win32_addr, sizeof(win32_addr));
 }
 
 union Win32Socket {
