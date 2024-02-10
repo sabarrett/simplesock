@@ -192,7 +192,8 @@ int Socket::Recv(char *buffer, int size) {
   ssize_t len = recv(to_native_socket(*this), buffer, size, 0);
   if (len == -1) {
     if (errno == EWOULDBLOCK) {
-      return SOCKLIB_EWOULDBLOCK;
+      _last_error = SOCKLIB_EWOULDBLOCK;
+      return -1;
     }
     throw std::runtime_error(std::string("recv(): ") + strerror(errno));
   }
@@ -206,7 +207,8 @@ int Socket::RecvFrom(char* buffer, int size, Address& src) {
   ssize_t count = recvfrom(to_native_socket(*this), buffer, size, 0, (sockaddr*)&native_addr.address, &socklen);
   if (count == -1) {
     if (errno == EWOULDBLOCK) {
-      return SOCKLIB_EWOULDBLOCK;
+      _last_error = SOCKLIB_EWOULDBLOCK;
+      return -1;
     }
     throw std::runtime_error(std::string("recvfrom(): ") + strerror(errno));
   }
