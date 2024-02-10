@@ -122,6 +122,10 @@ void Socket::Create(Socket::Family family, Socket::Type type) {
     native_type = SOCK_STREAM;
     native_protocol = IPPROTO_TCP;
     break;
+  case DGRAM:
+    native_type = SOCK_DGRAM;
+    native_protocol = IPPROTO_UDP;
+    break;
   default:
     throw std::runtime_error("Not implemented");
   }
