@@ -88,6 +88,18 @@ int Socket::SetNonBlockingMode(bool shouldBeNonBlocking) {
   return 0;
 }
 
+int Socket::SetTimeout(int seconds) {
+  timeval tv = {0};
+  tv.tv_sec = seconds;
+  int result = setsockopt(to_native_socket(*this),
+			  SOL_SOCKET, SO_RCVTIMEO,
+			  &tv, sizeof(tv));
+  if (result == -1) 
+    throw std::runtime_error(std::string("setsockopt():") + strerror(errno));
+
+  return result;
+}
+
 void Socket::Create(Socket::Family family, Socket::Type type) {
   if (_has_socket)
     throw std::runtime_error("Socket already has an associated system socket.");
@@ -176,20 +188,26 @@ int Socket::Connect(const Address &address) {
   return 0;
 }
 
-size_t Socket::Recv(char *buffer, size_t size) {
+int Socket::Recv(char *buffer, int size) {
   ssize_t len = recv(to_native_socket(*this), buffer, size, 0);
-  if (len < 0) {
+  if (len == -1) {
+    if (errno == EWOULDBLOCK) {
+      return SOCKLIB_EWOULDBLOCK;
+    }
     throw std::runtime_error(std::string("recv(): ") + strerror(errno));
   }
 
-  return len;
+  return (int)len;
 }
 
-size_t Socket::RecvFrom(char* buffer, size_t size, Address& src) {
+int Socket::RecvFrom(char* buffer, int size, Address& src) {
   PosixAddress native_addr;
   socklen_t socklen = sizeof(native_addr.address);
   ssize_t count = recvfrom(to_native_socket(*this), buffer, size, 0, (sockaddr*)&native_addr.address, &socklen);
   if (count == -1) {
+    if (errno == EWOULDBLOCK) {
+      return SOCKLIB_EWOULDBLOCK;
+    }
     throw std::runtime_error(std::string("recvfrom(): ") + strerror(errno));
   }
 

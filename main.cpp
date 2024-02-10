@@ -1,17 +1,15 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <time.h>
 
 #include "socklib.h"
 
 void do_client();
-void do_server();
+int do_server();
 
 int main(int argc, char *argv[]) {
-  if (argc == 1) do_client();
-  else do_server();
-
-  return 0;
+  return do_server();
 }
 
 void do_client() {
@@ -28,7 +26,7 @@ void do_client() {
   std::cout << "[Client] sent " << nbytes_sent << " bytes.\n";
 }
 
-void do_server() {
+int do_server() {
   std::cout << "[Server] running...\n";
   Socket conn_sock(Socket::Family::INET, Socket::Type::DGRAM);
 
@@ -40,10 +38,46 @@ void do_server() {
 
   Address from_addr;
 
-  size_t nbytes_received = conn_sock.RecvFrom(buffer, sizeof(buffer), from_addr);
+  int max_timeout = 5;
+  int timeout = 1;
+  int nbytes_received = 0;
+  bool recv_failed = false;
+  conn_sock.SetTimeout(timeout);
+
+  time_t before_retry = time(NULL);
+
+  while (timeout < max_timeout) {
+    nbytes_received = conn_sock.RecvFrom(buffer, sizeof(buffer), from_addr);
+    if (nbytes_received == Socket::Error::SOCKLIB_EWOULDBLOCK) {
+      std::cout << "Timeout occurred.\n";
+      timeout *= 2;
+      if (timeout >= max_timeout) {
+	std::cout << "Recv() failed.\n";
+	recv_failed = true;
+      } else {
+	std::cout << "Retrying with timeout=" << timeout << "...\n";
+	conn_sock.SetTimeout(timeout);
+      }
+    }
+  }
+
+  time_t after_retry = time(NULL);
+  time_t seconds_passed = after_retry - before_retry;
+  if (!recv_failed) {
+    std::cout << "Recv succeeded for some reason?\n";
+    return 1;
+  }
+  if (seconds_passed < 7) {
+    std::cout << seconds_passed << " seconds spent retrying,"
+	      << "but should have been at least 7\n";
+    return 1;
+  }
+  std::cout << seconds_passed << " seconds spent retrying. Success.\n";
+  return 0;
   
   std::cout << "[Server] received message '" << std::string(buffer, nbytes_received)
 	    << "' from host '" << from_addr << "'\n";
+  return 1;
 }
 
 std::string build_string(std::istream &in_stream) {

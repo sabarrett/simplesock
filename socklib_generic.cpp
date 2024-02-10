@@ -10,6 +10,7 @@ std::string to_string(const ByteString &s) {
 Socket::Socket() {
   memset(_data.data, 0, sizeof(_data.data));
   _has_socket = false;
+  _last_error = 0;
 }
 
 Socket::Socket(Socket::Family family, Socket::Type type) : Socket() {
@@ -18,6 +19,7 @@ Socket::Socket(Socket::Family family, Socket::Type type) : Socket() {
 
 Socket::Socket(Socket &&other) {
   _has_socket = other._has_socket;
+  _last_error = other._last_error;
   memcpy(_data.data, other._data.data, sizeof(_data.data));
 
   other._has_socket = false;
@@ -26,6 +28,10 @@ Socket::Socket(Socket &&other) {
 
 Socket::~Socket() {
   if (_has_socket) native_destroy(*this);
+}
+
+int Socket::GetLastError() {
+  return _last_error;
 }
 
 size_t Socket::SendAll(const ByteString &data) {
@@ -42,7 +48,7 @@ size_t Socket::SendAll(const char *data, size_t len) {
   return send_count;
 }
 
-size_t Socket::Recv(ByteString &buffer) {
+int Socket::Recv(ByteString &buffer) {
     return Recv(buffer.data(), buffer.size());
 }
 

@@ -33,6 +33,10 @@ class Socket
     DGRAM
   };
 
+  enum Error {
+    SOCKLIB_EWOULDBLOCK
+  };
+
   Socket();
   Socket(Family family, Type type);
   ~Socket();
@@ -40,8 +44,10 @@ class Socket
   Socket(const Socket& other) = delete;
   Socket(Socket&& other);
 
+  int GetLastError();
+  
   int SetNonBlockingMode(bool shouldBeNonBlocking);
-
+  int SetTimeout(int seconds);
 
   void Create(Family family, Type type);
   int Bind(const Address& address);
@@ -49,9 +55,9 @@ class Socket
   Socket Accept();
   int Connect(const Address& address);
   PoolView RecvIntoPool(unsigned int max_len);
-  size_t Recv(char* buffer, size_t size);
-  size_t Recv(ByteString& buffer);
-  size_t RecvFrom(char* buffer, size_t size, Address& src);
+  int Recv(char* buffer, int size);
+  int Recv(ByteString& buffer);
+  int RecvFrom(char* buffer, int size, Address& src);
   size_t Send(const char* data, size_t len);
   size_t SendTo(const char* buffer, size_t len, const Address& dest);
   size_t SendAll(const char* data, size_t len);
@@ -60,6 +66,7 @@ class Socket
   static void native_destroy(Socket& socket);
 
   bool _has_socket;
+  int _last_error;
 
   struct SocketData
   {

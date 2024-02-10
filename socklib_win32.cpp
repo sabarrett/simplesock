@@ -91,6 +91,16 @@ int Socket::SetNonBlockingMode(bool shouldBeNonBlocking) {
   return 0;
 }
 
+int Socket::SetTimeout(int seconds) {
+  DWORD value = (DWORD)seconds;
+  int result = setsockopt(to_native_socket(*this),
+			  SOL_SOCKET, SO_RCVTIMEO,
+			  &value, sizeof(value));
+  require(result == 0, "setsockopt()");
+
+  return 0;
+}
+
 void Socket::Create(Socket::Family family, Socket::Type type) {
   if (_has_socket)
     throw std::runtime_error("Socket already has an associated system socket.");
@@ -162,17 +172,34 @@ int Socket::Connect(const Address &address) {
   return 0;
 }
 
-size_t Socket::Recv(char *buffer, size_t size) {
-  int len = recv(to_native_socket(*this), buffer, (int)size, 0);
+int Socket::Recv(char *buffer, int size) {
+  int len = recv(to_native_socket(*this), buffer, size, 0);
+  if (len == SOCKET_ERROR) {
+    int errno = WSAGetLastError();
+    if (errno == WSAEWOULDBLOCK) {
+      _last_error = SOCKLIB_EWOULDBLOCK;
+      return -1;
+    }
+  }
+  // Crash on all other errors
   require(len >= 0, "recv()");
 
-  return (size_t)len;
+  return len;
 }
 
-size_t Socket::RecvFrom(char* buffer, size_t size, Address& src) {
+int Socket::RecvFrom(char* buffer, int size, Address& src) {
   Win32Address native_addr;
   int socklen = sizeof(native_addr.address);
-  int count = recvfrom(to_native_socket(*this), buffer, (int)size, 0, (sockaddr*)&native_addr.address, &socklen);
+  int count = recvfrom(to_native_socket(*this), buffer, size, 0, (sockaddr*)&native_addr.address, &socklen);
+  if (count == SOCKET_ERROR) {
+    int errno = WSAGetLastError();
+    if (errno == WSAEWOULDBLOCK) {
+      _last_error = SOCKLIB_EWOULDBLOCK;
+      return -1;
+    }
+  }
+
+  // Crash on all other errors
   require(count != SOCKET_ERROR, "recvfrom()");
 
   src._data = native_addr.generic_data;
