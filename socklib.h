@@ -47,7 +47,7 @@ class Socket
   int GetLastError();
   
   int SetNonBlockingMode(bool shouldBeNonBlocking);
-  int SetTimeout(int seconds);
+  int SetTimeout(float seconds);
 
   void Create(Family family, Type type);
   int Bind(const Address& address);

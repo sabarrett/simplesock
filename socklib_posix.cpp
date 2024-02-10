@@ -1,5 +1,6 @@
 #include "socklib.h"
 #include <arpa/inet.h>
+#include <cmath>
 #include <cstring>
 #include <cassert>
 #include <memory>
@@ -88,9 +89,12 @@ int Socket::SetNonBlockingMode(bool shouldBeNonBlocking) {
   return 0;
 }
 
-int Socket::SetTimeout(int seconds) {
+int Socket::SetTimeout(float seconds) {
+  float i, f;
+  f = modff(seconds, &i);
   timeval tv = {0};
-  tv.tv_sec = seconds;
+  tv.tv_sec = (int)i;
+  tv.tv_usec = f * (int)1e6;
   int result = setsockopt(to_native_socket(*this),
 			  SOL_SOCKET, SO_RCVTIMEO,
 			  &tv, sizeof(tv));

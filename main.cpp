@@ -41,8 +41,8 @@ int do_server() {
 
   Address from_addr;
 
-  int max_timeout = 5;
-  int timeout = 1;
+  float max_timeout = 5;
+  float timeout = 1.2;
   int nbytes_received = 0;
   bool recv_failed = false;
   conn_sock.SetTimeout(timeout);
