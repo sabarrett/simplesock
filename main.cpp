@@ -9,7 +9,10 @@ void do_client();
 int do_server();
 
 int main(int argc, char *argv[]) {
-  return do_server();
+  SockLibInit();
+  int result = do_server();
+  SockLibShutdown();
+  return result;
 }
 
 void do_client() {
