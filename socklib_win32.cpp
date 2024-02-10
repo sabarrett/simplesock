@@ -95,7 +95,7 @@ int Socket::SetTimeout(int seconds) {
   DWORD value = (DWORD)seconds;
   int result = setsockopt(to_native_socket(*this),
 			  SOL_SOCKET, SO_RCVTIMEO,
-			  &value, sizeof(value));
+			  (const char*)&value, sizeof(value));
   require(result == 0, "setsockopt()");
 
   return 0;
@@ -175,8 +175,7 @@ int Socket::Connect(const Address &address) {
 int Socket::Recv(char *buffer, int size) {
   int len = recv(to_native_socket(*this), buffer, size, 0);
   if (len == SOCKET_ERROR) {
-    int errno = WSAGetLastError();
-    if (errno == WSAEWOULDBLOCK) {
+    if (WSAGetLastError() == WSAEWOULDBLOCK) {
       _last_error = SOCKLIB_EWOULDBLOCK;
       return -1;
     }
@@ -192,8 +191,7 @@ int Socket::RecvFrom(char* buffer, int size, Address& src) {
   int socklen = sizeof(native_addr.address);
   int count = recvfrom(to_native_socket(*this), buffer, size, 0, (sockaddr*)&native_addr.address, &socklen);
   if (count == SOCKET_ERROR) {
-    int errno = WSAGetLastError();
-    if (errno == WSAEWOULDBLOCK) {
+    if (WSAGetLastError() == WSAEWOULDBLOCK) {
       _last_error = SOCKLIB_EWOULDBLOCK;
       return -1;
     }
