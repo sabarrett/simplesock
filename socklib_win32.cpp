@@ -91,8 +91,8 @@ int Socket::SetNonBlockingMode(bool shouldBeNonBlocking) {
   return 0;
 }
 
-int Socket::SetTimeout(int seconds) {
-  DWORD value = (DWORD)seconds * 1000;
+int Socket::SetTimeout(float seconds) {
+  DWORD value = (DWORD)(seconds * 1000);
   int result = setsockopt(to_native_socket(*this),
 			  SOL_SOCKET, SO_RCVTIMEO,
 			  (const char*)&value, sizeof(value));
