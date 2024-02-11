@@ -43,8 +43,9 @@ int main(int argc, char *argv[]) {
   /* TODO: SET UP / TEAR DOWN SOCKET LIBRARY HERE; SEED RANDOM
      NUMBERS */
   SockLibInit();
+
   srand(time(NULL));
-  
+
   int result = run_all_tests();
 
   SockLibShutdown();

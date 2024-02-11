@@ -45,8 +45,25 @@ static bool keep_retrying(UDPClient& client,
   return false;
 }
 
+class SrandTester
+{
+public:
+  SrandTester()
+  {
+    srand(1);
+    rand_val = rand();
+    srand(1);
+  }
+
+  static int rand_val;
+} __rand_tester__;
+
+static bool srand_called = false;
+int SrandTester::rand_val;
+
 static bool test_q1() {
   bool passing_all = true;
+
   {
     UDPClient client(consts::HOST, consts::BAD_PORT);
     std::cout << "Testing improper port...\n";
@@ -87,6 +104,18 @@ static bool test_q1() {
 
 static bool test_q2() {
   bool passing_all = true;
+
+  std::cout << "Testing if srand() was called...\n";
+
+  if (!srand_called) {
+    std::cout << "FAIL: random number generator is not seeded.\n";
+    passing_all = false;
+  } else {
+    std::cout << "PASS: seeded random number generator.\n";
+    passing_all = passing_all && true;
+  }
+
+
   {
     UDPClient client(consts::HOST, consts::BAD_PORT);
     std::cout << "Testing improper port...\n";
@@ -122,8 +151,8 @@ static struct {
     const char* name;
     int value;
 } tests[] = {
-    {test_q1, "test_q1", 20},
-    {test_q2, "test_q2", 20}
+  {test_q1, "test_q1", 20},
+  {test_q2, "test_q2", 20}
 };
 
 static bool tests_passed[sizeof(tests) / sizeof(tests[0])] = {false};
@@ -132,6 +161,7 @@ int run_all_tests() {
   int sum = 0;
   int total_possible = 0;
   bool passed_all_tests = true;
+  srand_called = rand() != SrandTester::rand_val;
   for (int i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
     {
       auto test = tests[i];

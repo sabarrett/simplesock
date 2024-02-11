@@ -1,10 +1,9 @@
-# Programming Assignment 3 -- TCP Clients
+# Programming Assignment 4 -- UDP Sockets
 
-The purpose of this assignment is to help you practice creating
-sockets, opening connections, and formatting, sending, and receiving
-data. You will create a client program that communicates with a server
-via a socket connection and displays the results sent back from the
-server.
+The purpose of this assignment is to help you practice creating UDP
+sockets and dealing with the various shortcomings of UDP. You will
+create a client program that communicates with a server via several
+UDP sends and receives.
 
 As always, to begin this assignment:
 - Create a new repository from this template repository.
@@ -22,54 +21,78 @@ As always, to begin this assignment:
 
 1. Add whatever global setup and teardown is necessary for the sockets
    library at the beginning/end of the `main()` function.
-2. Implement the `do_client()` function. This will do several things:
-   1. Create a socket, and connect to the server at **IP ADDRESS
-	  68.183.63.165** and **PORT 7778**.
-   2. Create a string to send to the server using the `build_string()`
-      function (described below).
-   3. Send a properly-formatted sort string to the server.
-   4. Receive the server's response.
-   5. Create a `std::string` from the server's response and return it.
-3. Implement the `build_string()`[^1] function. This will do several
-   things:
-   1. Get a line from the given `istream`.
-   2. Take a line of input from the given `istream` and parse it into
-      an integer (if it is an integer) or a float (if it is a float).
-   3. Add the parsed number to a string, which will ultimately be sent
-      to the server.
-   4. When the user enters the string `done`, the string is complete
-      and should be returned.
+2. Seed the random number generator in `main()` using `srand()`.
+3. Create the `UDPClient` class as described below. You may do this
+   directly in `udp_client.h`, or you may make a new `udp_client.cpp`
+   file, which will need to be properly added to `CMakeLists.txt`.
 
-The server expects a string of the format "LIST n1 n2 ... nn", where
-ni is the ith number of the list to be sorted.
+### Q1
+Implement the `UDPClient` class. This has two methods:
 
-| **If you send...**  | **The server will return...**        |
-|:-------------------:|:------------------------------------:|
-| LIST 5 4 3 2 1      | SORTED 1 2 3 4 5                     |
-| LIST 4.2 7.8 -9 404 | SORTED -9 4.2 404 7.8                |
-| 4.2 7.8 -9 404      | ERROR: LIST prefix not present.      |
-| LIST                | ERROR: No elements provided to sort. |
-| LIST 1 2 3 4 x      | ERROR: Non-numeric input provided    |
-| LIST 127a 0 2 4     | ERROR: Non-numeric input provided    |
+#### UDPClient Constructor
+This takes two arguments: 
+- `const char* host`: the host to which the client will send messages.
+- `int port`: the UDP port number to send messages to.
+
+#### `send_message_by_character`
+
+This method has the following signature:
+
+```c++
+int send_message_by_character(const std::string& str, std::string& result)
+```
+
+This sends `str` to the server one character at a time, awaiting a
+response after each transmission (aka sending a character).
+
+The client must use **truncated exponential backoff**. **For each
+transmission** (each individual character it is sending) it should
+begin with an initial timeout of `INITIAL_TIMEOUT` (see contants.h) and keep
+doubling the timeout and re-sending the character, until a response is
+received or the `MAX_TIMEOUT` is reached.
+
+If `MAX_TIMEOUT` is reached, return `-1`. Otherwise, this method must
+**set `result` to the value of all of the received characters in the
+order they were received.** The value of `result` may be undefined if
+`-1` is returned.
+
+You should see that some characters get repeated and some are missing
+due to the unreliableness of UDP.
+
+### Q2
+
+Incorporate the optional third `bool include_ids` argument in the
+constructor so that your class keeps track of it for its lifetime. If
+this argument is set to `true`, `send_message_by_character` should
+have its behavior changed as described below. If the parameter is
+`false`, your class should retain its behavior from Q1.
+
+Update the `send_message_by_character` method so that its behavior
+depends on whether request IDs are being included or not. If they are
+not, nothing different from Q1 should happen, but if they are then:
+
+Each message should be of the form `REQUEST_ID|character` where
+`REQUEST_ID` is an integer randomly chosen using the `rand()`
+function, and `character` is the character you are sending. Note that
+the pipe symbol `|` is used to separate the `REQUEST_ID` from the
+data. Responses from the server will follow the same format. The code
+should keep attempting to receive responses until one with the
+matching ID is received. Any response with an incorrect ID should be
+discarded, but responses with the correct ID should be concatenated
+together into a string that this function sets `result` to. With this
+protection in place you should see that this function is able to
+receive an exact copy of the provided message, meaning that it has
+guaranteed all responses are received in the correct order.
+
+As before, this function should return `-1` if `MAX_TIMEOUT` is tried
+and reached for any single transmission, and `0` if it completes
+successfully. The value of `result` may be undefined if `-1` is
+returned.
 
 ## Grading
 
-- The socket library is correctly initialized and shutdown (3 points)
-- Code connects to the server via a socket (4 points)
-- Code sends input to the server using the proper format and encoding
-  (8 points)
-- Code accepts, decodes, and prints responses from the server (5
-  point)
-- `build_string()` logic is correctly implemented (regardless of
-  whether it is an independent function or is simply inlined). (5
-  points)
+- Q1: 20 points
+- Q2: 20 points
+- Submission and code style: 10 points
 
-**Note:** Once you have the above bullet points correct, the test
-that occurs when the program runs will pass.
-
-- Code is formatted well (consistently indented, clear variable names,
-  etc.) (5 points)
-
-**Total: 30 points.**
-
-[^1]: Note that the exact details of this function aren't important -- for example, it doesn't matter if build_string() returns a string with "LIST" prepended or if that is done by do_client(). In fact, it's not important that you implement a discrete build_string() function at all. However, this logic must occur somehwere in your program.
+**Total: 50 points.**
