@@ -114,7 +114,7 @@ static bool test_q2() {
     }
   }
 
-  return true;
+  return passing_all;
 }
 
 static struct {
