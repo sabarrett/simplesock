@@ -44,8 +44,6 @@ int main(int argc, char *argv[]) {
      NUMBERS */
   SockLibInit();
 
-  srand(time(NULL));
-
   int result = run_all_tests();
 
   SockLibShutdown();
