@@ -5,12 +5,108 @@
 
 #include "socklib.h"
 
+class UDPClient {
+public:
+  UDPClient(const char* host, int port, bool include_ids = false):
+    server_addr(host, port),
+    socket(Socket::Family::INET, Socket::Type::DGRAM),
+    include_ids(include_ids)
+  {
+  }
+
+  int send_message_by_character(const std::string& str, std::string& result)
+  {
+    for (char c : str) {
+      float wait_time = 0.1f;
+      while (true) {
+	socket.SetTimeout(wait_time);
+	int request_id = rand();
+	std::string request;
+	{
+	  std::stringstream request_builder;
+	  if (include_ids) {
+	    request_builder << request_id << "|";
+	  }
+	  request_builder << c;
+	  request = request_builder.str();
+	}
+	std::cout << "Sending request " << request << "...\n";
+	socket.SendTo(request.data(), request.size(), server_addr);
+	char buffer[4096];
+	Address from_addr;
+	int nbytes_recvd = socket.RecvFrom(buffer, sizeof(buffer), from_addr);
+	if (nbytes_recvd == -1 && socket.GetLastError() == Socket::Error::SOCKLIB_ETIMEDOUT) {
+	  wait_time *= 2;
+	  if (wait_time > 10) {
+	    std::cout << "Timed out with wait_time = " << wait_time << ". Giving up.\n";
+	    return -1;
+	  }
+	  std::cout << "Timed out. Retrying with wait_time = " << wait_time << "\n";
+	  continue;
+	}
+	std::string raw_response(buffer, nbytes_recvd);
+	std::cout << "Received response " << raw_response << "\n";
+	if (include_ids) {
+	  std::stringstream ss(raw_response);
+	  std::string id;
+	  std::string response;
+	  std::getline(ss, id, '|');
+	  std::getline(ss, response);
+	  if (id == std::to_string(request_id)) {
+	    result += response;
+	    break;
+	  }
+	} else {
+	  result += raw_response;
+	  break;
+	}
+      }
+    }
+    return 0;
+  }
+
+  Address server_addr;
+  bool include_ids;
+  Socket socket;
+};
+
 void do_client();
 int do_server();
 
+int udp_assignment() {
+  {
+    std::cout << "Testing without request ids...\n";
+    UDPClient client("68.183.63.165", 9998);
+    std::string result;
+    int error = client.send_message_by_character("Beautiful is better than ugly", result);
+    if (error == -1) {
+      std::cout << "Timed out.\n";
+      return -1;
+    } else {
+      std::cout << "Got result '" << result << "'.\n";
+    }
+  }
+
+  {
+    std::cout << "Testing without request ids...\n";
+    UDPClient client("68.183.63.165", 9999, true);
+    std::string result;
+    int error = client.send_message_by_character("To be or not to be, that is the question", result);
+    if (error == -1) {
+      std::cout << "Timed out.\n";
+      return -1;
+    } else {
+      std::cout << "Got result '" << result << "'.\n";
+    }
+  }
+
+  return 0;
+}
+
 int main(int argc, char *argv[]) {
   SockLibInit();
-  int result = do_server();
+  srand(time(NULL));
+  int result = udp_assignment();
   SockLibShutdown();
   return result;
 }
