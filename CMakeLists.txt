@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(SimpleSock)
 
-add_executable(SimpleSock main.cpp socklib_generic.cpp)
+add_executable(SimpleSock main.cpp socklib_generic.cpp tests.cpp)
 
 target_compile_features(SimpleSock PRIVATE cxx_std_17)
 
