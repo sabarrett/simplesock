@@ -42,11 +42,7 @@ int udp_assignment() {
 int main(int argc, char *argv[]) {
   /* TODO: SET UP / TEAR DOWN SOCKET LIBRARY HERE; SEED RANDOM
      NUMBERS */
-  SockLibInit();
-
   int result = run_all_tests();
-
-  SockLibShutdown();
 
   return result;
 }
