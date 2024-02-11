@@ -180,7 +180,7 @@ int Socket::Recv(char *buffer, int size) {
   int len = recv(to_native_socket(*this), buffer, size, 0);
   if (len == SOCKET_ERROR) {
     if (WSAGetLastError() == WSAETIMEDOUT) {
-      _last_error = SOCKLIB_EWOULDBLOCK;
+      _last_error = SOCKLIB_ETIMEDOUT;
       return -1;
     }
   }
@@ -196,7 +196,7 @@ int Socket::RecvFrom(char* buffer, int size, Address& src) {
   int count = recvfrom(to_native_socket(*this), buffer, size, 0, (sockaddr*)&native_addr.address, &socklen);
   if (count == SOCKET_ERROR) {
     if (WSAGetLastError() == WSAETIMEDOUT) {
-      _last_error = SOCKLIB_EWOULDBLOCK;
+      _last_error = SOCKLIB_ETIMEDOUT;
       return -1;
     }
   }

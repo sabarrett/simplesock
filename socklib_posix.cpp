@@ -195,8 +195,8 @@ int Socket::Connect(const Address &address) {
 int Socket::Recv(char *buffer, int size) {
   ssize_t len = recv(to_native_socket(*this), buffer, size, 0);
   if (len == -1) {
-    if (errno == EWOULDBLOCK) {
-      _last_error = SOCKLIB_EWOULDBLOCK;
+    if (errno == EAGAIN) {
+      _last_error = SOCKLIB_ETIMEDOUT;
       return -1;
     }
     throw std::runtime_error(std::string("recv(): ") + strerror(errno));
@@ -210,8 +210,8 @@ int Socket::RecvFrom(char* buffer, int size, Address& src) {
   socklen_t socklen = sizeof(native_addr.address);
   ssize_t count = recvfrom(to_native_socket(*this), buffer, size, 0, (sockaddr*)&native_addr.address, &socklen);
   if (count == -1) {
-    if (errno == EWOULDBLOCK) {
-      _last_error = SOCKLIB_EWOULDBLOCK;
+    if (errno == EAGAIN) {
+      _last_error = SOCKLIB_ETIMEDOUT;
       return -1;
     }
     throw std::runtime_error(std::string("recvfrom(): ") + strerror(errno));

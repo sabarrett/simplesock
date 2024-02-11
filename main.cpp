@@ -51,7 +51,7 @@ int do_server() {
 
   while (timeout < max_timeout) {
     nbytes_received = conn_sock.RecvFrom(buffer, sizeof(buffer), from_addr);
-    if (nbytes_received == -1 && conn_sock.GetLastError() == Socket::Error::SOCKLIB_EWOULDBLOCK) {
+    if (nbytes_received == -1 && conn_sock.GetLastError() == Socket::Error::SOCKLIB_ETIMEDOUT) {
       std::cout << "Timeout occurred.\n";
       timeout *= 2;
       if (timeout >= max_timeout) {

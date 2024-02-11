@@ -34,7 +34,7 @@ class Socket
   };
 
   enum Error {
-    SOCKLIB_EWOULDBLOCK
+    SOCKLIB_ETIMEDOUT
   };
 
   Socket();
