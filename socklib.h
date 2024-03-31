@@ -36,7 +36,7 @@ class Socket
   };
 
   enum Error {
-    SOCKLIB_ETIMEDOUT
+    SOCKLIB_ETIMEDOUT,
   };
 
   Socket();

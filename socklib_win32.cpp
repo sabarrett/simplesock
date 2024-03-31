@@ -183,6 +183,10 @@ int Socket::Recv(char *buffer, int size) {
       _last_error = SOCKLIB_ETIMEDOUT;
       return -1;
     }
+    if (WSAGetLastError() == WSAEWOULDBLOCK) {
+      _last_error = SOCKLIB_ETIMEDOUT;
+      return -1;
+    }
   }
   // Crash on all other errors
   require(len >= 0, "recv()");
