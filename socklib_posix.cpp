@@ -167,18 +167,24 @@ int Socket::Listen(int backlog) {
 }
 
 Socket Socket::Accept() {
-  sockaddr conn_addr;
-  socklen_t conn_addr_len;
-  int connection = accept(to_native_socket(*this), &conn_addr, &conn_addr_len);
-  if (connection == -1) {
-    throw std::runtime_error(std::string("accept(): ") + strerror(errno));
-  }
+    Socket conn_sock(Socket::Family::INET, Socket::Type::STREAM);
 
-  Socket conn_sock(Socket::Family::INET, Socket::Type::STREAM);
-  PosixSocket sock;
-  sock.posix_socket = connection;
-  conn_sock._data = sock.generic_data;
-  return conn_sock;
+    AcceptInto(conn_sock);
+
+    return conn_sock;
+}
+
+void Socket::AcceptInto(Socket& conn_sock) {
+    sockaddr conn_addr;
+    socklen_t conn_addr_len;
+    int connection = accept(to_native_socket(*this), &conn_addr, &conn_addr_len);
+    if (connection == -1) {
+        throw std::runtime_error(std::string("accept(): ") + strerror(errno));
+    }
+
+    PosixSocket sock;
+    sock.posix_socket = connection;
+    conn_sock._data = sock.generic_data;
 }
 
 int Socket::Connect(const Address &address) {
