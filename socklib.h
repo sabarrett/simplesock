@@ -55,6 +55,7 @@ class Socket
   int Bind(const Address& address);
   int Listen(int backlog=16);
   Socket Accept();
+  void AcceptInto(Socket& socket);
   int Connect(const Address& address);
   PoolView RecvIntoPool(unsigned int max_len);
   int Recv(char* buffer, int size);

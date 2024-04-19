@@ -155,15 +155,20 @@ int Socket::Listen(int backlog) {
 }
 
 Socket Socket::Accept() {
-  SOCKET connection = accept(to_native_socket(*this), NULL, NULL);
-  require(connection != INVALID_SOCKET, "accept()");
-
   Socket conn_sock(Socket::Family::INET, Socket::Type::STREAM);
-  Win32Socket sock;
-  sock.s = connection;
-  conn_sock._data = sock.generic_data;
+  AcceptInto(conn_sock);
 
   return conn_sock;
+}
+
+void Socket::AcceptInto(Socket& conn_socket) {
+    SOCKET connection = accept(to_native_socket(*this), NULL, NULL);
+    require(connection != INVALID_SOCKET, "accept()");
+
+    conn_socket.Create(Socket::Family::INET, Socket::Type::STREAM);
+    Win32Socket sock = { 0 };
+    sock.s = connection;
+    conn_socket._data = sock.generic_data;
 }
 
 int Socket::Connect(const Address &address) {

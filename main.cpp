@@ -39,10 +39,57 @@ int udp_assignment() {
   return 0;
 }
 
-int main(int argc, char *argv[]) {
-  /* TODO: SET UP / TEAR DOWN SOCKET LIBRARY HERE; SEED RANDOM
-     NUMBERS */
-  int result = run_all_tests();
+int run_server();
+int run_client();
 
-  return result;
+int main(int argc, char *argv[]) {
+    SockLibInit();
+    atexit(SockLibShutdown);
+
+    if (argc > 1) {
+        return run_server();
+    }
+
+    return run_client();
+}
+
+int run_server() {
+    Socket listen_sock(Socket::Family::INET, Socket::Type::STREAM);
+    listen_sock.Bind(Address("0.0.0.0", 23500));
+    listen_sock.Listen();
+
+    Socket* conn_sock = new Socket();
+    listen_sock.AcceptInto(*conn_sock);
+
+    char buffer[4096];
+    int nbytes_recvd = conn_sock->Recv(buffer, sizeof(buffer));
+    if (nbytes_recvd <= 0) {
+        fprintf(stderr, "BLEHHH");
+        return -1;
+    }
+    std::string msg(buffer, nbytes_recvd);
+    std::cout << "Received '" << msg << "'\n";
+    
+    std::string msg_to_send("Wow cool story client");
+    conn_sock->Send(msg_to_send.data(), msg_to_send.size());
+
+    return 0;
+}
+
+int run_client() {
+    Socket sock(Socket::Family::INET, Socket::Type::STREAM);
+    sock.Connect(Address("127.0.0.1", 23500));
+    std::string msg_to_send("This one time at band camp");
+    sock.Send(msg_to_send.data(), msg_to_send.size());
+
+    char buffer[4096];
+    int nbytes_recvd = sock.Recv(buffer, sizeof(buffer));
+    if (nbytes_recvd <= 0) {
+        fprintf(stderr, "BLEHHH");
+        return -1;
+    }
+    std::string msg(buffer, nbytes_recvd);
+    std::cout << "Received '" << msg << "'\n";
+
+    return 0;
 }
