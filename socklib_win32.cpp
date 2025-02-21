@@ -155,7 +155,7 @@ int Socket::Listen(int backlog) {
 }
 
 Socket Socket::Accept() {
-  Socket conn_sock(Socket::Family::INET, Socket::Type::STREAM);
+  Socket conn_sock;
   AcceptInto(conn_sock);
 
   return conn_sock;
